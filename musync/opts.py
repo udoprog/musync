@@ -37,7 +37,7 @@ tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
 MUSYNC_CONF_DECL
-version = [0,4,"_alpha"];
+version = (0,4,"_alpha");
 version_str = "Musync, music syncronizer %d.%d%s";
 REPORT_ADDRESS="trac.ostcon.org or johnjohn.tedro@gmail.com";
 
@@ -115,6 +115,11 @@ Settings = {
 };
 
 def settings_premanip():
+    """
+    Pre manipulation of settings.
+    this is executed in order:
+    premanip > sanity > postmanip
+    """
     # parse transcoding.
     if Settings["transcode"]:
         arg = Settings["transcode"];
@@ -146,14 +151,43 @@ def settings_premanip():
     
 
 def settings_postmanip():
+    """
+    postmanipulation of settings.
+    this is executed in order:
+    premanip > sanity > postmanip
+    """
     Settings["root"] = os.path.abspath(os.path.expanduser(Settings["root"]));
     Settings["supported-ext"] = Settings["supported-ext"].split(",");
+
+    import musync.locker; # needed for settings global variables
+    musync.locker.root = Settings["root"];
+    musync.locker.lock_file = Settings["lock-file"];
+   
+    # attempt to create 'lock-file'
+    lockpath=musync.locker.get_lockpath();
+    
+    if not os.path.isfile(lockpath):
+        Printer.boldnotice("  lock-file: is missing, i take the liberty to attempt creating one.");
+        Printer.boldnotice("      current value (relative to root): %s"%(lockpath));
+        Printer.boldnotice("                             lock-path: %s"%(Settings["lock-file"]));
+        try:
+            f = open(lockpath, "w");
+            f.close();
+        except Exception, e:
+            Printer.error("    Failed to create - %s"%(str(e)));
+            return False;
+    
     return True;
 
 ###
 # will try to display all noticed errors in configuration
 # then return False which will stop the program from further execution.
 def settings_sanity():
+    """
+    Sanity check of settings.
+    this is executed in order:
+    premanip > sanity > postmanip
+    """
     # try to pass a valid format string
     err=False;
     try:
@@ -181,17 +215,6 @@ def settings_sanity():
             Printer.error("%s: could not find path - check configuration and modify key."%(key));
             Printer.error("    current value: %s"%(Settings[key]));
             err=True;
-   
-    # attempt to create 'lock-file'
-    if Settings["lock-file"] is not None and not os.path.isfile(Settings["lock-file"]):
-        Printer.boldnotice("  lock-file: is missing, i take the liberty to attempt creating one.");
-        Printer.boldnotice("      current value: %s"%(Settings["lock-file"]));
-        try:
-            f = open(Settings["lock-file"], "w");
-            f.close();
-        except Exception, e:
-            Printer.error("    Failed to create - %s"%(str(e)));
-            err = True;
 
     if Settings["transcode"]:
         to=Settings["transcode"][1];
@@ -305,7 +328,7 @@ def read(argv):
         elif opt in ("-p", "--pretend"):
             Settings["pretend"] = True;
         elif opt in ("-V", "--version"):
-            print version_str%(version[0], version[1]);
+            print version_str%version;
             return None;
         elif opt in ("-R", "--recursive"):
             Settings["recursive"] = True;

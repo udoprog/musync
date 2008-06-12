@@ -163,7 +163,7 @@ def op_fix(p):
         raise WarningException("path not found: %s"%(p.path));
     
     if p.isfile() and p.ext not in Settings["supported-ext"]:
-        if p.path == Settings["lock-file"]:
+        if p.path == musync.locker.get_lockpath():
             Printer.action("ignoring lock-file");
             return;
 

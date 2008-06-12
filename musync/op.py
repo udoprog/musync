@@ -38,71 +38,6 @@ handled_files = 0;
 
 import cStringIO;
 
-def operate_progress_mode(args, call, inroot=False):
-    """
-    Redirects stdout to log-file.
-    FIXME: this should have the possibility to be faster than normal output.
-    FIXME: this is not working with new termcap.
-    """
-    Printer.boldnotice("Output redirected to log");
-    Printer.log("===Progress Output===\n"); 
-
-    null_log = Printer.f_log;
-    stdout = sys.stdout;
-    sys.stdout = null_log;
-    Printer.init(); # reinitiate printer.
-    #prev_suppressed = Settings["suppressed"];
-    #prev_silent = Settings["silent"];
-    # suppress the stuff interrupting this bar.
-    #Settings["suppressed"] = "notice,action";
-    #Settings["silent"] = True;
-    
-    list=[];
-    for p in readargs(args, inroot):
-        list.append(p);
-
-    l = len(list) - 1;
-    cll = 0;
-    line = "";
-    #cl = 0;
-    for i,p in enumerate(list):
-        if musync.sign.Interrupt is True:
-            stdout.write("\n");
-            sys.stdout = stdout;
-            musync.sign.setret(musync.sign.INTERRUPT);
-            raise FatalException("Caught Interrupt");
-
-        try:
-            #musync.opts.tmp_set("coloring", False);
-            call(p);
-            #musync.opts.tmp_revert("coloring");
-        except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
-            #musync.opts.tmp_revert("coloring"); # make sure configuration is correct.
-            stdout.write("\r" + (" "*cll));
-            stdout.write("\r");
-            sys.stdout = stdout;
-            Printer.warning(str( e ));
-            stdout.flush();
-            sys.stdout = null_log;
-
-        # first latest printed line.
-
-        # line to print
-        pr = "\r%d/%d"%(i, l);
-        # count line
-        
-        cll = len(pr) - 1;
-        stdout.write(pr);
-        stdout.flush();
-    stdout.write("\n");
-
-    #Settings["suppressed"] = prev_suppressed;
-    #Settings["silent"] = prev_silent;
-    sys.stdout = stdout;
-    null_log.close();
-
-    Printer.init();
-
 def operate(args, call, inroot=False):
     """
     Operation abstraction, this is the only function used by different operations.
@@ -130,9 +65,6 @@ def operate(args, call, inroot=False):
                 call(p);
             except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
                 pass;
-                #Printer.warning( str( e ) );
-    #    #operate_progress_mode(args, call, inroot=inroot);
-    #    return;
         Printer.stdout_normal();
     
     else:
@@ -162,7 +94,7 @@ def readargs(args, inroot):
 
             file = sys.stdin.readline()[:-1];
     else:
-        while len( args ) > 0:
+        while len(args) > 0:
             for p in readpaths(args[0], inroot):
                 yield p;
 
@@ -171,6 +103,9 @@ def readargs(args, inroot):
     return;
 
 def readpaths(path, inroot):
+    """
+    
+    """
     global handled_dirs, handled_files;
     if inroot:
         path = Settings["root"] + "/" + path;

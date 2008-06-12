@@ -17,13 +17,15 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from musync.errors import WarningException,FatalException; # exceptions
-from musync.opts import Settings;
+from musync.errors import WarningException, FatalException; # exceptions
 
 DB=[]
 DB_NEWS=[]
 changed = False;
 removed = False;
+
+root=None;
+lock_file=None;
 
 def unlock(path):
     global changed, removed, DB;
@@ -81,12 +83,16 @@ def parentislocked(path):
 
 import os.path;
 
+def sanity_chk():
+    if root is None:
+        raise FatalException("locker.root is None");
+
+    if lock_file is None:
+        raise FatalException("locker.lock_file is None");
+
 def init():
     global DB;
-    if Settings["lock-file"] is None:
-        raise FatalException("'lock-file' not defined");
-
-    lockpath="%s/%s"%(Settings["root"], Settings["lock-file"]);
+    lockpath=get_lockpath();
 
     if not os.path.isfile(lockpath):
         f = open(lockpath,"w");
@@ -100,7 +106,7 @@ def stop():
     global changed, removed, DB, DB_NEWS;
     if changed:
         # this will trigger writing if database has been changed.
-        lockpath="%s/%s"%(Settings["root"], Settings["lock-file"]);
+        lockpath=get_lockpath();
 
         if not os.path.isfile(lockpath):
             f = open(lockpath,"w");
@@ -115,3 +121,8 @@ def stop():
             f = open(lockpath, "a");
             f.writelines(DB_NEWS);
             f.close();
+
+def get_lockpath():
+    global root, lock_file;
+    sanity_chk();
+    return "%s/%s"%(root, lock_file);
