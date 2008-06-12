@@ -1,0 +1,7 @@
+to just run without installing do:
+    make test
+
+to install run:
+    make && make install
+
+'make install' requires superuser access

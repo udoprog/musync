@@ -1,0 +1,2 @@
+* Fixed so that exiting error/about message doesn't exit program.
+* added installation stuff with files.

@@ -1,0 +1,3 @@
+* Before sending arguments to musync, warn (no error) if option R has been disabled after the user have selected directories.
+* Emhpasize that musync has gotten better trough this process.
+* add license comment to all files.

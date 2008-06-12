@@ -1,0 +1,11 @@
+this index file describes each file in a very short manner.
+ src/Commons.java - global functionality needed in most aspects of MusyncSwing
+ src/MainFrame.java - initiates everything you see in the main frame
+ src/MainOperation.java - initiates everything you see in the 'operations' pane (left side)
+ src/MainOptions.java - initiates everythin you see in the 'options' pane (right side)
+ src/MainMenu.java - initiates the menu at the top and binds actions. Also home to simple frames (like about)
+ src/SubProcess.java - handles the subprocess called generally, and specifically the one made to the musync cli tool.
+ src/MainShell.java - a simple shell implementation to display simple coloring of cli-applications and such.
+ src/gfx/* - contains graphic used in MusyncSwing
+ src/manifest.txt - defines what class should be run in the jar file that can be built.
+ src/* - add yours here
