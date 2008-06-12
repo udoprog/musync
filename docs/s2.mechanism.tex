@@ -1,0 +1,24 @@
+\subsection{Path Expansion}
+Musync uses something calle \emph{path expansion}.
+This is the process of taking meta data from a music file, cleaning it up to properly suite a file system.
+And combining album/artist/track/name into a nicely formatted path.
+
+Example by default configuration:
+\codeblock{
+artist: Mats \&{} Morgan\\
+album: Trends \&{} Other Diseases\\
+title: Read My Thoughts\\
+track: 6
+}
+this will first be expanded to:
+\codeblock{
+artist: mats_n_morgan\\
+album: trends_n_other_diseases\\
+title: read_my_thoughts\\
+track: 6
+}
+track does for apparent reasons not pass through the sed-filter.
+
+After the cleaning process musync will use the keys dir: .. and format: .. to create a path like dir/format.
+
+This is called the target path. The source path is the argument files that the user has provided. 

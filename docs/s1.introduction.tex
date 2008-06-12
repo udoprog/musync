@@ -1,0 +1,38 @@
+\subsection{What is musync?}
+\paragraph{The short explanation:}
+Musync sorts your music, using the metadata acquired from the files themselves, which exists in most popular music formats as of today.
+
+\paragraph{The slightly longer:}
+Musync is a strict, highly customizable music organizer, if it doesn't behave in a logical way -- it is probably a bug.
+
+Musync will \emph{never} modify your original music files, unless you configure it to do so.
+it was created to utilise the tools that already exists in a sane operating system, since they are well tested, and provide the highest performance in the safest possible way.
+
+\subsection{Requirements}
+
+\paragraph{compulsary}
+\begin{itemize}
+\item Python \footnote{\url{http://python.org}}
+\item Mutagen library for python\footnote{\url{http://www.sacredchao.net/quodlibet/wiki/Development/Mutagen}}
+\end{itemize}
+
+\paragraph{recommended}
+\begin{itemize}
+\item *nix Coreutils (mv, cp, ln, etc...) \footnote{these exists for windows aswell}
+\item GNU Sed \footnote{GNU: \url{http://www.gnu.org/software/coreutils/}}
+\end{itemize}
+
+
+\subsection{Installation}
+
+run
+\codeblock{> setup.py install}
+as superuser to install. By default musync will try to put all necessary files in
+\codeblock{/usr/share/musync}
+and it is up to the user to copy these into the right position.
+
+Musync scans the following directories for configuration files:
+\begin{itemize}
+\item \code{/etc/musync.conf}
+\item \code{\~{}/.musyncrc}
+\end{itemize}
