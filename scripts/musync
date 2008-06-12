@@ -1,0 +1,354 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# musync, a minimalistic set of scripts for syncronization of music
+# Copyright (C) 2007 Albin Stjerna, John-John Tedro
+#
+#    Musync is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Musync is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+###
+# Please put changes here
+###
+
+"""
+Basic Classes
+
+Withs - handles all subprocessing that is necessary on the keys that all starts with 'with', these are shell executed.
+SedString - special module designed to formalize proper communication with sed.
+Printer - handles everything that needs to be printed.
+"""
+
+import musync.printer as Printer; # printer module
+from musync.opts import Settings; # global settings
+from musync.errors import WarningException,FatalException; # exceptions
+import musync.opts; #options
+import musync.dbman as db;
+import musync.op;
+import musync.hints;
+
+import sys, os;
+import traceback;
+#import codecs;      # For utf-8 file support
+#set language-specific stuff:
+#language, output_encoding = locale.getdefaultlocale()
+
+#global stop variable
+
+import musync.meta;
+import musync.sign;
+import musync.locker;
+
+import signal;
+
+def op_add(p):
+    """
+    Operation to add files to filestructure.
+    @param p Path object to file being added.
+    """
+    if p.isdir():
+        Printer.notice("ignoring directory: %s"%(p.path));
+        return;
+   
+    if not p.isfile():
+        raise WarningException("not a file: %s"%(p.path));
+
+    if p.ext not in Settings["supported-ext"]:
+        raise WarningException("unsupported extension");
+    
+    meta = musync.meta.readmeta(p);
+    cmeta = musync.meta.cleanmeta(meta);
+    
+    # this causes nice display of artist/album
+    Printer.focus(cmeta);
+ 
+
+    t = db.build_target(p, cmeta);
+    # FIXME: need transcoding
+    #if we are trying to transcode
+    if Settings["transcode"]:
+        if Settings["pretend"]:
+            Printer.notice("would transcode: %s"%(p.path));
+        (p, t) = db.transcode(p, t);
+    
+    if musync.locker.islocked(t):
+        raise WarningException("locked: %s"%(p.path));
+
+    if Settings["pretend"]:
+        Printer.notice("would add: %s"%(p.path));
+        Printer.blanknotice("       as: %s"%(t.relativepath()));
+    else:
+        Printer.action("adding file: %s"%(t.relativepath()));
+        db.add(p, t);
+    
+    if Settings["lock"]:
+        op_lock(t);
+
+def op_remove(p):
+    """
+    Operation to remove files matching in filestructure.
+    @param p Path object to file being removed.
+    """
+    
+    if p.isdir():
+        if not p.inroot():
+            raise WarningException("cannot remove directory (not in root): %s"%(p.path));
+        
+        if not p.isempty():
+            raise WarningException("cannot remove directory (not empty): %s"%(p.relativepath()));
+        
+        if Settings["pretend"]:
+            Printer.notice("would remove empty dir: %s"%(p.relativepath()));
+        else:
+            Printer.action("removing directory: %s"%(p.relativepath()));
+            p.rmdir();
+            return;
+
+    if p.ext not in Settings["supported-ext"]:
+        raise WarningException("unsupported extension: %s"%(p.path));
+    
+    if not p.isfile():
+        raise WarningException("file not found: %s"%(p.path));
+    
+    meta = musync.meta.readmeta(p);
+    cmeta = musync.meta.cleanmeta(meta);
+
+    # this causes nice display of artist/album
+    Printer.focus(cmeta);
+
+    # build target path
+    t = db.build_target(p, cmeta);
+    
+    if musync.locker.islocked(t):
+        raise WarningException("locked: %s"%(t.relativepath()));
+    if musync.locker.parentislocked(t):
+        raise WarningException("locked: %s (parent)"%(t.relativepath()));
+
+    if not t.isfile():
+        raise WarningException("target file not found: %s"%(t.relativepath()));
+    
+    if Settings["pretend"]:
+        Printer.notice("would remove: %s"%(p.path));
+        Printer.blanknotice("          as: %s"%(t.relativepath()));
+    else:
+        Printer.action("removing file: %s"%(t.relativepath()));
+        db.remove(p, t);
+
+def op_fix(p):
+    """
+    Operation to fix files in filestructure.
+    Opening fix-log as input file.
+    @param p Path object to file being fixed.
+    """
+    if not p.inroot():
+        raise WarningException("can only fix files in 'root'");
+
+    if musync.locker.islocked(p):
+        raise WarningException("locked: %s"%(p.relativepath()));
+    if musync.locker.parentislocked(p):
+        raise WarningException("locked: %s (parent)"%(p.relativepath()));
+
+    if not p.exists():
+        raise WarningException("path not found: %s"%(p.path));
+    
+    if p.isfile() and p.ext not in Settings["supported-ext"]:
+        if p.path == Settings["lock-file"]:
+            Printer.action("ignoring lock-file");
+            return;
+
+        if Settings["pretend"]:
+            Printer.notice("would remove: %s (unknown ext.)"%(p.path));
+        else:
+            Printer.action("removing (unknown ext.): %s"%(p.path));
+            import musync.subp as sp;
+            sp.rm_with(p.path);
+        return;
+    
+    t = None;
+    if p.isfile():
+        meta = musync.meta.readmeta(p);
+        cmeta = musync.meta.cleanmeta(meta);
+        t = db.build_target(p, cmeta);
+    else:
+        t = p;
+
+    if Settings["pretend"]:
+        Printer.notice("would check: %s"%(p.path));
+        if t.isfile():
+            Printer.blanknotice("         as: %s"%(t.relativepath()));
+    else:
+        if p.isfile():
+            db.fix_file(p, t);
+        elif p.isdir():
+            db.fix_dir(p);
+    
+    if Settings["lock"]:
+        op_lock(t);
+
+def op_lock(p):
+    """
+    lock a file, making it unavailable to adding, removing and such.
+    @param p Path object to file being locked.
+    """
+    if not p.inroot():
+        raise WarningException("can only lock files in 'root'");
+
+    if Settings["pretend"]:
+        Printer.notice("would try to lock: %s"%(p.path));
+        return;
+
+    if p.isfile():
+        musync.locker.lock(p);
+        Printer.notice("file has been locked: %s"%(p.path));
+    elif p.isdir():
+        if not p.inroot():
+            raise WarningException("cannot lock directories outside of root");
+        musync.locker.lock(p);
+        Printer.notice("dir has been locked: %s"%(p.path));
+
+def op_unlock(p):
+    """
+    Unlock a file, making it available to adding, removing and such.
+    @param p Path object to file being unlocked.
+    """
+    if not p.inroot():
+        raise WarningException("can only unlock files in 'root'");
+
+    if Settings["pretend"]:
+        Printer.notice("would try to unlock: %s"%(p.path));
+        return;
+    
+    if p.isfile():
+        if musync.locker.islocked(p):
+            musync.locker.unlock(p);
+            Printer.notice("path has been unlocked: %s"%(p.path));
+        elif musync.locker.parentislocked(p):
+            tp = p.parent();
+            raise WarningException("parent is locked: %s"%(tp.path));
+        else:
+            raise WarningException("path is not locked: %s"%(p.path));
+    elif p.isdir():
+        musync.locker.unlock(p);
+        Printer.notice("dir has been unlocked: %s"%(p.path));
+
+def main(argv):
+    musync.locker.init();
+    
+    if not os.path.isdir(Settings["root"]):
+        raise FatalException("'%s' is not a directory or does not exist! "%( Settings["root"] ));
+
+    if len(argv) < 1:
+        raise FatalException("To few arguments");
+    
+    #try to figure out operation.
+    if args[0] in ("rm","remove"):  #remove files from depos
+
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending to remove files...");
+        else:
+            Printer.boldnotice("# Removing files...");
+
+        musync.op.operate(args[1:], op_remove);
+    elif args[0] in ("add","sync"): #syncronize files with musicdb
+
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending to add files...");
+        else:
+            Printer.boldnotice("# Adding files...");
+            
+        musync.op.operate(args[1:], op_add);
+
+    elif args[0] in ("fix"): #syncronize files with musicdb
+
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending to fix files...");
+        else:
+            Printer.boldnotice("# Fixing files...");
+
+        # make sure all paths are referenced relative to root.
+        musync.op.operate(args[1:], op_fix);
+    elif args[0] in ("lock"):
+
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending to lock files...");
+        else:
+            Printer.boldnotice("# Locking files...");
+        
+        musync.op.operate(args[1:], op_lock);
+    elif args[0] in ("unlock"):
+
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending to unlock files...");
+        else:
+            Printer.boldnotice("# Unlocking files...");
+
+        musync.op.operate(args[1:], op_unlock);
+    else:
+        raise FatalException("There is no operation called '%s'"%(args[0]));
+
+    if Settings["pretend"]:
+        Printer.boldnotice("# Pretending done!");
+    else:
+        Printer.boldnotice("# Done!");
+
+    musync.locker.stop();
+    return 0;
+
+# assign different signal handlers.
+try:
+    def exithandler(signum,frame):
+        signal.signal(signal.SIGINT, signal.SIG_IGN);
+        signal.signal(signal.SIGTERM, signal.SIG_IGN);
+        musync.sign.Interrupt = True;
+
+    signal.signal(signal.SIGINT, exithandler);
+    signal.signal(signal.SIGTERM, exithandler);
+#   signal.signal(signal.SIGPIPE, signal.SIG_IGN); removed to suite windows?
+except KeyboardInterrupt:
+    sys.exit(1);
+
+# This block ensures that ^C interrupts are handled quietly.
+if __name__ == "__main__":
+    # note that this is not the place for WarningExceptions
+    args = None; 
+   
+    Printer.init();
+    try:
+        args = musync.opts.read(sys.argv[1:]);
+        Printer.openlogs();
+        if args is not None: # a nice way to go
+            main(args);
+    except FatalException,e: # break execution exception.
+        Printer.error((str(e)));
+    except Exception,e: # if this happens, something went really bad.
+        Printer.error("Fatal Exception - %s"%(str(e)));
+        print traceback.format_exc();
+        Printer.error("Something went very wrong, please report this error at %s"%(musync.opts.REPORT_ADDRESS));
+        sys.exit(1);
+    except SystemExit,e: # interrupts and such
+        sys.exit(e);
+   
+    if args is not None:
+        Printer.boldnotice("handled %d files, %d dirs"%(musync.op.handled_files, musync.op.handled_dirs));
+    
+    musync.hints.run();
+   
+    if Printer.haslogged:
+        print "Wrote to log - check: %(log)s"%{ 'log': Settings["log"] };
+    if Printer.needfixes:
+        print "Fixes are needed - check: %(fixlog)s"%{ 'fixlog': Settings["fix-log"] };
+    
+    # FIXME this might be unsafe 
+    Printer.closelogs();
+    sys.exit(musync.sign.ret());

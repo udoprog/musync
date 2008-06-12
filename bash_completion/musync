@@ -1,0 +1,66 @@
+
+_musync() 
+{
+    root=$(awk -F": " '/^root:/{print $2}' /etc/musync.conf)
+
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ ${#COMP_WORDS[*]} > 2 ]]; then
+        prevprev="${COMP_WORDS[COMP_CWORD-2]}"
+    else
+        prevprev=""
+    fi
+    
+    opts1="add rm fix lock unlock"
+    opts="-e -V -h -L -p -R -s -C -r -c -l -f -M -B"
+    long_opts="--export --version --help --lock --pretend --recursive --silent --coloring --root --config --log --force --progress"
+
+    if [[ $cur == "-" ]]; then
+        COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+    elif [[ $cur == "--" ]]; then
+        COMPREPLY=($(compgen -W "${long_opts}" -- "${cur}"))
+    elif [[ $prev == "musync" ]] ; then
+        COMPREPLY=($(compgen -W "${opts1}" -- "${cur}"))
+    else
+        for arg in ${COMP_WORDS[@]}; do
+            if [[ $arg == "fix" || $arg == "lock" || $arg == "unlock" ]]; then
+                while true; do
+                    comp=()
+                    for path in $root/$cur*; do
+                        comp=(${comp[*]} ${path#$root/})
+                    done
+                    
+                    COMPREPLY=($(compgen -W "${comp[*]}" -- "${cur}"))
+                    
+                    if [[ ${COMPREPLY[*]} == $COMPREPLY ]]; then
+                        if [[ -d $root/$COMPREPLY ]]; then
+                            cur="$COMPREPLY/"
+                            continue;
+                        fi
+                    fi
+                    break;
+                done
+                return 0;
+            fi
+        done
+            
+        while true; do
+            COMPREPLY=($(compgen -W "$(echo $cur*)" -- "${cur}"))
+            if [[ ${COMPREPLY[*]} == $COMPREPLY ]]; then
+                if [[ -d $COMPREPLY ]]; then
+                    cur="$COMPREPLY/"
+                    continue;
+                fi
+            fi
+            break;
+        done
+        return 0;
+    fi
+
+    return 0
+}
+
+complete -F _musync musync

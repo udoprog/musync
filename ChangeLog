@@ -1,0 +1,81 @@
+
+Thu May  8 03:49:53 CEST 2008 by udoprog
+	* coloring no longer does anything, since terminal capabilites will check
+	if coloring is possible. if not it is just ignored. there was also some
+	dofficulties involved with this that wasn't expected, and the simple
+	sollution was this.
+	* Progressbar now works, all output is written to log.
+
+
+Tue May  6 12:33:59 CEST 2008 by udoprog
+	* added experimental transcoding options. They are explained properly when
+	running 'musync --help' and trying the '-T' option.
+	-T flac=ogg would try to (encode) flac-filer into ogg. Musync would look
+	for the key 'flac-to-ogg' in configuration and expects the value of the
+	key to be a command using the variables %(source)s %(dest)s for encoding
+	the flac file (as source) and the target ogg (as dest).
+	* fixed checking for similar files in music database, files named the same
+	but with different extensions are effected. Users will be prompted to use
+	--allow-similar to allow for example an ogg and a flac file with same
+	artist, title, album and track to be added to db.
+	* all extensions in configuration no longer includes a dot '.', it is
+	important to fixed the keys 'supported-ext' and 'format' in configuration.
+	This has been fixed in example configuration.
+	* added terminal capabilities, if curses exists on target computer.
+	Coloring is now controlled trough this. (more dynamic).
+
+Sun May  4 17:39:54 CEST 2008 by udoprog
+	* removed key sed-naming and renamed sed-with with filter-with. There is
+	also the possibility to use the %(field)s variable in the string which
+	enables you to use different configs for different fields in the metadata
+	(artist, album ...).
+
+Fri May  2 22:38:39 CEST 2008 by udoprog
+	* added bash_completion script for easier usage. fix/lock/unlock command
+	lists database instead of working directoriy.
+	* fixed minor bugs, check all operations. now prints relativa paths (to
+	root) instead of long absolute ones.
+
+Wed Apr 30 00:09:06 CEST 2008 by udoprog
+	* added better help when configuration is faulty (thanks to talyz for
+	this)
+	* ive also started applying a better ChangeLog syntax.
+	* added option --progress for a progress-meter instead of output.
+	* santitized some spillage output. (--help, --version, etc...)
+
+2008.04.23 udoprog
+	* added hinting
+
+earlier
+	* Added option --overwrite (now known as --force)
+	* Fixed bug with absolute path reference in MusicFile. It used to disrupt
+	symlinking.
+	* Fixed comma-seperated value acceptance for --config parameter.
+	* Fixed internals and added class Withs (for fun) to handle commands.
+	* Change decoding to utf-16 instead of utf-8 when cleaning names. (major)
+	* Warnings are now printed onto stderr.
+	* Fixed recognition of 'tracknumber' key as 'track'
+	* Added key 'coloring' and 'default-config' (-C/--coloring in cli).
+	* Warnings are no longer logged.
+	* Stability and naming conventions somewhat differs.
+	* Linear reference is now possible with configurations.
+	* Musync has been divided into several modules, see for your self. Global
+	reconstructure and reuse of code, now it is neat and tidy.
+	* you should no longer use 'mv' with add-with, since it breaks
+	hash-testing.
+	* Fixing now works, see README for what it does.
+	* supported-ext has new syntaX, REQUIRES dots as prefix (like
+	'.mp3,.flac')
+	* overwrite is now known as force. -O is -F. (also true in configuration).
+	* Fixed windows compatibility. Problems with how to code default config
+	file remains.
+	* Fixed install scripts.
+	* added locking/unlocking capabilities
+	* fixed -M properly
+	* added --lock (for locking when adding/fixing)
+	* fixed usage of gnu_getopt instead of getopt.
+	* added hinting
+	* Changed output when file is added or removed to include basename.
+	* Configuration reading is performed by an automatic loop.
+	* Configuration is read in "/.musync
+	* Peronalized configurations are read, named by [section], used with '-c'
