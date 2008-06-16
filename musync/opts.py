@@ -37,8 +37,8 @@ tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
 MUSYNC_CONF_DECL
-version = (0,4,"_alpha");
-version_str = "Musync, music syncronizer %d.%d%s";
+version = (0,4,0,"_alpha");
+version_str = "Musync, music syncronizer %d.%d.%d%s";
 REPORT_ADDRESS="trac.ostcon.org or johnjohn.tedro@gmail.com";
 
 # used with tmp_set/tmp_revert
