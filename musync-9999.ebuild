@@ -10,7 +10,7 @@ HOMEPAGE="http://sourceforge.net/projects/musync"
 
 LICENSE=""
 SLOT="0"
-KEYWORDS="~x86"
+KEYWORDS=""
 IUSE=""
 
 DEPEND="

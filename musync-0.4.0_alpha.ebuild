@@ -13,7 +13,7 @@ IUSE="bash-completion"
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="amd64 x86"
+KEYWORDS="~amd64 ~x86"
 
 RDEPEND="
 	>=dev-lang/python-2.3
@@ -22,7 +22,7 @@ RDEPEND="
 
 DEPEND="${RDEPEND}"
 
-DOCS="README cfg/posix/musync.conf cfg/posix/musync.sed"
+DOCS="README"
 
 src_compile() {
 	${python} setup.py config || die "setup.py config failed"
