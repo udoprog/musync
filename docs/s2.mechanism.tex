@@ -22,3 +22,12 @@ track does for apparent reasons not pass through the sed-filter.
 After the cleaning process musync will use the keys dir: .. and format: .. to create a path like dir/format.
 
 This is called the target path. The source path is the argument files that the user has provided. 
+
+\subsection{Adding Files}
+When a file is being added to the musync repository it is almost exclusively copied unless the user specifies in key add-with: .. that it want's to add the file in another way.
+
+If the source does not exist after the file has been added, hash-checking will in some cases fail. This is because musync tries to add a file up to three times if it finds that there are differences in their respective hashes. If the file has been removed or moved from it's source, the sequent hashes will have no reference -- \emph{this is why it is discouraged to use a destructive command for add-with: ..}
+
+Another argument to use copying instead of a destructive command is that the current revision of musync cannot check if source and target exists on different partitions - this has plans on the drawing board to fix.
+
+Musync generally tries to be as non-destructive to preexisting files as possible. This is why we have chosen the copy approach, even though it might feel quirky when you have to copy preexisting files. 
