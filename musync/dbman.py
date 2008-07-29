@@ -31,7 +31,6 @@
 #
 
 import os;
-import tempfile;
 import musync.subp as sp;
 from musync.opts import Settings;
 import musync.printer as Printer;
@@ -189,7 +188,7 @@ def transcode(p, t):
     t = musync.commons.Path("%s/%s.%s"%(t.dir, t.basename, t_to));
     
     # this is the temporary file for the transcode.
-    tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, tempfile.mktemp(), t_to);
+    tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, os.getpid(), t_to);
     
     if (t.exists() or t.islink()) and not Settings["force"]:
         raise WarningException("file already exists: %s"%(t.relativepath()));
