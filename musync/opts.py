@@ -118,7 +118,7 @@ Settings = {
                         },
     "transcode":        None,
     "allow-similar":    None,
-    "no-fixme":         True,
+    "no-fixme":         False,
 };
 
 def settings_premanip():

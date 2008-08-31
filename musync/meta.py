@@ -88,22 +88,28 @@ def readmeta(p):
             to_key = "track";
 
         # these are the keys that we can use
-        if to_key in ["artist","album","title","track"]:
-            # this is where non-destructive metadata modification happens.
-            if Settings["modify"][to_key] is not None:
-                meta[to_key] = Settings["modify"][to_key];
-                continue;
+        if to_key not in ["artist","album","title","track"]:
+            continue;
 
-            # try to read from file.
-            try:
-                meta[to_key] = audio[from_key][0];
-            except Exception,e:
-                raise FatalException("metadata corrupt - %s"%(p.path));
+        # try to read from file.
+        try:
+            meta[to_key] = audio[from_key][0];
+        except Exception,e:
+            raise FatalException("metadata corrupt - %s"%(p.path));
+
+    # apply modifications
+    for k in Settings["modify"]:
+        if Settings["modify"][k]:
+            meta[k] = Settings["modify"][k];
     
-    if not Settings["no-fixme"] and sorted(meta.keys()) != ["album", "artist", "title", "track"] or None in meta.values():
-        Printer.fixlog(p.path, meta);
-        raise WarningException("fixme - %s"%(p.path));
-    
+    for field in ["album", "artist", "title", "track"]:
+        if meta[field] is None:
+            if Settings["no-fixme"]:
+                meta[field] = unicode("");
+            else:
+                Printer.fixlog(p.path, meta);
+                raise WarningException("fixme - %s"%(p.path));
+
     return meta;
 
 def cleanmeta(meta):
