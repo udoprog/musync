@@ -100,7 +100,7 @@ def readmeta(p):
             except Exception,e:
                 raise FatalException("metadata corrupt - %s"%(p.path));
     
-    if sorted(meta.keys()) != ["album", "artist", "title", "track"] or None in meta.values():
+    if not Settings["no-fixme"] and sorted(meta.keys()) != ["album", "artist", "title", "track"] or None in meta.values():
         Printer.fixlog(p.path, meta);
         raise WarningException("fixme - %s"%(p.path));
     

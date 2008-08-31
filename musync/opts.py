@@ -26,6 +26,12 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
+#
+# howto add a new option:
+#    add it to default Setting
+#    make sure values is read specifically as boolean if necessary (from configuration file)
+#    make sure it is added to help-text (if necessary).
+#    make sure cli-option is parsed.
 
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
@@ -111,7 +117,8 @@ Settings = {
                             "args": []
                         },
     "transcode":        None,
-    "allow-similar":    None
+    "allow-similar":    None,
+    "no-fixme":         True,
 };
 
 def settings_premanip():
@@ -257,7 +264,8 @@ def OverlaySettings( parser, sect ):
                 "pretend",
                 "lock",
                 "progress",
-                "allow-similar"
+                "allow-similar",
+                "no-fixme",
             ]:
                 Settings[opt] = parser.getboolean(sect, opt);
             else:
@@ -310,7 +318,8 @@ def read(argv):
                 "config=",
                 "modify=",
                 "transcode=",
-                "allow-similar"
+                "allow-similar",
+                "no-fixme",
             ]
        );
     except getopt.GetoptError,e:
@@ -358,6 +367,8 @@ def read(argv):
             Settings["transcode"]=arg;
         elif opt in ("--allow-similar"):
             Settings["allow-similar"] = True;
+        elif opt in ("--no-fixme"):
+            Settings["no-fixme"] = True;
         else:
             raise FatalException("Undefined option '%s'."%(opt));
     
@@ -438,6 +449,8 @@ def Usage ():
         Options:
         syntax: *long-opt* (or *short-opt*) [*args*] '*conf-key*' (also *relevant*):
 
+            --no-fixme 'no-fixme':
+                ignore 'fixme' problems (you should review fixme-file first).
             --lock (or -L) 'lock' (also 'lock-file'):
                 Can be combined with fix or add for locking
                 after operation has been performed.
