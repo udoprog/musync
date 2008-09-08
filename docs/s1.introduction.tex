@@ -26,13 +26,18 @@ it was created to utilise the tools that already exists in a sane operating syst
 \subsection{Installation}
 
 run
-\codeblock{> setup.py install}
+\begin{verbatim}
+> setup.py install
+\end{verbatim}
+
 as superuser to install. By default musync will try to put all necessary files in
-\codeblock{/usr/share/musync}
+\begin{verbatim}
+/usr/share/musync
+\end{verbatim}
 and it is up to the user to copy these into the right position.
 
 Musync scans the following directories for configuration files:
 \begin{itemize}
-\item \code{/etc/musync.conf}
-\item \code{\~{}/.musyncrc}
+\item \verb!{/etc/musync.conf}!
+\item \verb!\~{}/.musyncrc}!
 \end{itemize}
