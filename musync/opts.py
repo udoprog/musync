@@ -224,8 +224,9 @@ def settings_sanity():
                         'artist': "baz",
                         'album': "foobar",
                         'track': 0,
+                        'year': 0,
                         'ext': "baz",
-                        'target': "fbz"
+                        'target': "fbz",
                     };
             except ValueError, e:
                 Printer.error("%s: %s."%(key, str(e)));
