@@ -34,7 +34,7 @@ from mutagen.mp4 import MP4;
 from mutagen.flac import FLAC;
 
 from musync.errors import WarningException
-from musync.error import FatalException;
+from musync.errors import FatalException;
 from musync.opts import Settings;
 from musync.subp import sanitize_with_filter;
 from mutagen import File;
@@ -77,7 +77,7 @@ def easyapev2(f):
     
     return ameta;
 
-def easymp4(f):
+def easytags(f):
     """
     get sane metadata from an insane file type.
     """
@@ -86,10 +86,12 @@ def easymp4(f):
         "\xa9alb": "album",
         "\xa9day": "date",
         "\xa9nam": "title",
-        "trkn": "track"
+        "trkn": "track",
+        "year": "date"
     };
 
     ameta = blankmeta.copy();
+    
     for k in f.tags.keys():
         key = k.lower();
         # dictionary replace all keys
@@ -98,7 +100,10 @@ def easymp4(f):
 
         # set keys in template
         if key in ameta.keys():
-            ameta[key] = f.tags[k];
+            if type(f.tags[k]) == list:
+                ameta[key] = f.tags[k];
+            else:
+                ameta[k.lower()] = [unicode(f[k])];
     
     if ameta["track"] is not None:
         # nice hack to workaround the fact that the retarded file _often_
@@ -106,6 +111,7 @@ def easymp4(f):
         if type(ameta["track"][0]) == tuple: 
             ameta["track"] = [unicode(ameta["track"][0][0])];
     
+    print ameta;
     return ameta;
 
 def extractkey(p, key):
@@ -165,7 +171,7 @@ def openaudio(p):
         audio = f;
         p.ext = "flac";
     elif isinstance(f, MP4):
-        audio = easymp4(f);
+        audio = easytags(f);
         p.ext = "mp4";
     elif isinstance(f, APEv2File):
         audio = easyapev2(f);
