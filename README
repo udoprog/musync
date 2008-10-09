@@ -44,7 +44,7 @@ musync README
         If musync complains about bad metadata, check out the log-file that was created (default /tmp/log-fixes.log)
         and run it trough some nice tagger, like musicbrainz picard.
 
-        there is a manual in construction at trac.ostcon.org/MuSync
+        there is a manual in construction at svn which can be found on http://sf.net/projects/musync 
 
         --- what is 'fix'? ---
             i noticed that my music files really got screwed around when adding stuff to musync.sed for naming rules, and i had
