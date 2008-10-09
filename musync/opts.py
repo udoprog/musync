@@ -43,7 +43,7 @@ tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
 MUSYNC_CONF_DECL
-version = (0,4,0,"_r2");
+version = (0,4,0,"-r3");
 version_str = "Musync, music syncronizer %d.%d.%d%s";
 REPORT_ADDRESS="http://sourceforge.net/projects/musync or johnjohn.tedro@gmail.com";
 
