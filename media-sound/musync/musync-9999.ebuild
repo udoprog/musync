@@ -28,4 +28,7 @@ src_unpack() {
 }
 
 pkg_postinst() {
+	echo
+	echo "Please look into /usr/share/musync for auxilliary files"
+	echo
 }
