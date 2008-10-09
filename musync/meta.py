@@ -34,6 +34,7 @@ from mutagen import File;
 
 #emergency stuff
 from mutagen.id3 import TXXX;
+from mutagen.id3 import TDRC;
 
 # 
 #
@@ -97,15 +98,16 @@ def openaudio(p):
         if k in audio.keys():
             ameta[k] = audio[k];
 
-    # try to force the data out of the retard file.
-    for k in ameta:
-        if ameta[k] is None:
-            ameta[k] = extractkey(File(p.path), k);
-
     # translate brainfucked keys.
     for k in translate.keys():
         if ameta[k] is not None:
             ameta[translate[k]] = ameta[k];
+            del(ameta[k]);
+
+    # try to force the data out of the retard file.
+    for k in ameta:
+        if ameta[k] is None:
+            ameta[k] = extractkey(File(p.path), k);
     
     return ameta;
 
@@ -119,17 +121,17 @@ def readmeta(p):
     audio = openaudio(p);
 
     for key in audio.keys():
+        if audio[key] is None:
+            continue;
+
         to_key = key;
         from_key = key;
         # corrections go here
-        if key in ["tracknumber"]:
-            to_key = "track";
-
         if key in ["date"]:
             to_key = "year";
         
         # these are the keys that we can use
-        if to_key not in ["artist","album","title","track","year"]:
+        if to_key not in meta.keys():
             continue;
 
         # try to read from file.

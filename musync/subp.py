@@ -29,11 +29,17 @@ from musync.errors import WarningException, FatalException;
 import musync.printer as Printer;
 
 def filter_with(str, field):
+    """
+    Wrapper for use with the key 'filter-with'.
+    """
     filter_cmd = Settings["filter-with"].split(' ');
     filter_cmd = [ x%{'field': field} for x in filter_cmd ];
     return safe_child(sc_filter_with, [filter_cmd, str]);
 
 def sc_filter_with(args):
+    """
+    'filter-with' to be used as first argument to safe_child.
+    """
     proc = sp.Popen( args[0], stdin=sp.PIPE, stdout=sp.PIPE );
     proc.stdin.write( args[1] );
     proc.stdin.close();
@@ -72,11 +78,17 @@ def sc_rm_with(args):
     return (state, state);
 
 def hash_with(target):
+    """
+    Uses Hash with.
+    """
     hash_cmd = Settings["hash-with"].split(' ');
     hash_cmd = [ x%{ 'target': target } for x in hash_cmd ];
     return safe_child(sc_hash_with, hash_cmd);
 
 def sc_hash_with(args):
+    """
+    'hash-with' wrapper to be used as first argument to safe_child.
+    """
     proc = sp.Popen(args, stdin=None, stdout=sp.PIPE);
     hash_data = proc.stdout.read();
     proc.stdout.close();

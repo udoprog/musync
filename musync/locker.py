@@ -35,8 +35,9 @@ def unlock(path):
         raise WarningException("%s - is not in root"%(path.path));
     
     relpath=path.relativepath();
+    
     if not relpath:
-        raise WarningException("%s - failed to get relativepath"%(path.path));
+        raise WarningException("%s - failed to get relative path"%(path.path));
     
     DB.remove(relpath);
     changed = True;
