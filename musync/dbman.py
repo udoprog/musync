@@ -54,29 +54,13 @@ def build_target(p, cmeta):
                  notice that this should have been cleaned with
                  musync.meta.cleanmeta();
     """
-    dir = os.path.join(
-        Settings["root"],
-        Settings["dir"]%{
-            'track': cmeta["track"], \
-            'title': cmeta["title"], \
-            'artist': cmeta["artist"], \
-            'album': cmeta["album"], \
-            'ext': p.ext
-        }
-    );
 
-    path = "%s/%s"%( \
-        dir, \
-        Settings["format"]%{ \
-            'track': cmeta["track"], \
-            'title': cmeta["title"], \
-            'artist': cmeta["artist"], \
-            'album': cmeta["album"], \
-            'ext': p.ext
-        }
+    fmt = cmeta;
+    fmt["ext"] = p.ext;
+    
+    return musync.commons.Path(
+        os.path.join(Settings["root"], Settings["dir"]%fmt, Settings["format"]%fmt)
     );
-
-    return musync.commons.Path(path);
 
 def hash_compare(path1, path2):
     """
@@ -165,6 +149,7 @@ def fix_file(p, t):
 
     if not t.isfile() and not t.islink():
         Printer.action("adding insane file - %s"%(p.relativepath()));
+        Printer.action("                as - %s"%(t.relativepath()));
         add(p, t);
 
     Printer.action("removing insane file - %s"%(p.relativepath()));

@@ -33,5 +33,5 @@ def run():
         return;
 
     if musync.op.handled_files == 0 and musync.op.handled_dirs > 0:
-        print_hint("Did you forget to use --recursive (or -r)?");
+        print_hint("Did you forget to use --recursive (or -R)?");
         return;

@@ -43,9 +43,9 @@ tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
 MUSYNC_CONF_DECL
-version = (0,4,0,"_r1");
+version = (0,4,0,"_r2");
 version_str = "Musync, music syncronizer %d.%d.%d%s";
-REPORT_ADDRESS="trac.ostcon.org or johnjohn.tedro@gmail.com";
+REPORT_ADDRESS="http://sourceforge.net/projects/musync or johnjohn.tedro@gmail.com";
 
 # used with tmp_set/tmp_revert
 reverts = {};
@@ -119,6 +119,7 @@ Settings = {
     "transcode":        None,
     "allow-similar":    None,
     "no-fixme":         False,
+    "dateformat":       "\"%Y\"",
 };
 
 def settings_premanip():
@@ -174,9 +175,9 @@ def settings_postmanip():
     lockpath=musync.locker.get_lockpath();
     
     if not os.path.isfile(lockpath):
-        Printer.boldnotice("  lock-file: is missing, i take the liberty to attempt creating one.");
+        Printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
         Printer.boldnotice("      current value (relative to root): %s"%(lockpath));
-        Printer.boldnotice("                             lock-path: %s"%(Settings["lock-file"]));
+        Printer.boldnotice("                             lock-file: %s"%(Settings["lock-file"]));
         try:
             f = open(lockpath, "w");
             f.close();
@@ -213,6 +214,25 @@ def settings_sanity():
             Printer.error("%s: must exist."%(key));
             Printer.error("    current value: %s"%(Settings[key]));
             err=True;
+        else:
+            # do a dummy replace to check formats and SHIT
+            try:
+                for k in Settings[key].split(' '):
+                    k%{
+                        'source': "foo",
+                        'dest': "bar",
+                        'artist': "baz",
+                        'album': "foobar",
+                        'track': 0,
+                        'ext': "baz",
+                        'target': "fbz"
+                    };
+            except ValueError, e:
+                Printer.error("%s: %s."%(key, str(e)));
+                Printer.error("    current value: %s"%(Settings[key].replace("%", "%%")));
+                Printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
+                err = True;
+                
     
     # these must exist as path
     for key in ["rm-with","add-with","filter-with"]:
@@ -290,7 +310,7 @@ def read(argv):
     for cfg in [cfgfile, os.path.join(os.path.expanduser( "~" ), ".musync")]:
         if not os.path.isfile(cfg):
             continue;
-        cp.readfp(open(cfgfile));
+        cp.readfp(open(cfg));
     
     # open log
     OverlaySettings(cp, "general");

@@ -44,7 +44,7 @@ class Path:
         """
         initiate variables.
         """
-        self.path = os.path.abspath( path );
+        self.path = os.path.abspath(path);
         self.dir = os.path.dirname(self.path);
         self.ext = os.path.splitext(self.path)[1].lower();
         self.basename = self.path[len(self.dir) + 1:-len(self.ext)];

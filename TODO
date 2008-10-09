@@ -1,1 +1,2 @@
 * FIX all Settings calls to export in settings_postmanip
+* FIX check all format keys properly, incomplete format might be raised.

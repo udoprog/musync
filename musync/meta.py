@@ -77,18 +77,21 @@ def readmeta(p):
     @param p musync.commons.Path object describing the file.
     """
 
-    meta={"album":None, "artist":None, "title":None, "track":None};
+    meta={"album":None, "artist":None, "title":None, "track":None, "year":0};
     audio = openaudio(p);
-   
+
     for key in audio.keys():
         to_key = key;
         from_key = key;
         # corrections go here
-        if key == "tracknumber":
+        if key in ["tracknumber"]:
             to_key = "track";
 
+        if key in ["date"]:
+            to_key = "year";
+        
         # these are the keys that we can use
-        if to_key not in ["artist","album","title","track"]:
+        if to_key not in ["artist","album","title","track","year"]:
             continue;
 
         # try to read from file.
@@ -102,7 +105,7 @@ def readmeta(p):
         if Settings["modify"][k]:
             meta[k] = Settings["modify"][k];
     
-    for field in ["album", "artist", "title", "track"]:
+    for field in ["album", "artist", "title", "track", "year"]:
         if meta[field] is None:
             if Settings["no-fixme"]:
                 meta[field] = unicode("");
@@ -129,6 +132,23 @@ def cleanmeta(meta):
             meta["track"] = int(track);
     except Exception,e:
         raise FatalException("cannot use tracknumber");
+    
+    nomatch = True;
+
+    for date in Settings["dateformat"].split("|"):
+        import time;
+        try:
+            d = time.strptime(meta["year"], date);
+        except Exception, e:
+            continue;
+        
+        nomatch = False;
+        meta["year"] = d[0];
+        break;
+
+    if nomatch:
+        meta["year"] = 0;
+    
     # no plan for this section yet, keep along...
     #sanitize all strings
     for key in ["artist","album","title"]:
