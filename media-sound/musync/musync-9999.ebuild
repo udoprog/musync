@@ -4,20 +4,25 @@
 
 inherit subversion distutils
 
-DESCRIPTION="a music syncronizer"
-HOMEPAGE="http://sourceforge.net/projects/musync"
-#SRC_URI="svn://ostcon.org/musync/trunk"
+DESCRIPTION="A sleek music synchronizer written in python"
+HOMEPAGE="http://sf.net/projects/musync"
+#SRC_URI="https://musync.svn.sf.net/svnroot/musync/trunk"
 
-LICENSE=""
+IUSE="bash-completion"
+LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS=""
-IUSE=""
+KEYWORDS="~amd64 ~x86"
 
 DEPEND="
 >=dev-lang/python-2.3
 >=media-libs/mutagen-1.12
 "
-RDEPEND=""
+RDEPEND="
+	>=dev-lang/python-2.3
+	|| ( >=dev-lang/python-2.5 >=dev-python/ctypes-0.9 )
+	>=media-libs/mutagen-1.12"
+
+DEPEND="${RDEPEND}"
 
 ESVN_REPO_URI="https://musync.svn.sourceforge.net/svnroot/trunk"
 S=${WORKDIR}/trunk
