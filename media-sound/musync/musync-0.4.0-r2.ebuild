@@ -6,7 +6,7 @@ inherit eutils distutils
 
 DESCRIPTION="A sleek music synchronizer written in python"
 HOMEPAGE="http://sourceforge.net/projects/musync"
-SRC_URI="mirror://sourceforge/musync/${P}.tar.gz"
+SRC_URI="mirror://sourceforge/musync/musync-0.4.0_r2.tar.gz"
 
 # Worry-about-later:
 IUSE="bash-completion"
