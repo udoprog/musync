@@ -64,8 +64,9 @@ def op_add(p):
     if not p.isfile():
         raise WarningException("not a file: %s"%(p.path));
 
-    if p.ext not in Settings["supported-ext"]:
-        raise WarningException("unsupported extension");
+    # FIXME: remove when done
+    #if p.ext not in Settings["supported-ext"]:
+    #    raise WarningException("unsupported extension");
     
     meta = musync.meta.readmeta(p);
     cmeta = musync.meta.cleanmeta(meta);
@@ -115,8 +116,9 @@ def op_remove(p):
             p.rmdir();
             return;
 
-    if p.ext not in Settings["supported-ext"]:
-        raise WarningException("unsupported extension: %s"%(p.path));
+    # FIXME: remove when done
+    #if p.ext not in Settings["supported-ext"]:
+    #    raise WarningException("unsupported extension: %s"%(p.path));
     
     if not p.isfile():
         raise WarningException("file not found: %s"%(p.path));

@@ -121,6 +121,7 @@ Settings = {
     "allow-similar":    None,
     "no-fixme":         False,
     "dateformat":       "\"%Y\"",
+    "debug":            None,
 };
 
 def settings_premanip():
@@ -322,7 +323,7 @@ def read(argv):
         # see: http://docs.python.org/lib/module-getopt.html
         opts, args = getopt.gnu_getopt(
             argv,
-            "hepVRLsCBfhl:r:c:M:T:",
+            "hepVRLsCBfhl:r:c:M:T:d",
             [
                 "help",
                 "export",
@@ -342,6 +343,7 @@ def read(argv):
                 "transcode=",
                 "allow-similar",
                 "no-fixme",
+                "debug",
             ]
        );
     except getopt.GetoptError,e:
@@ -391,6 +393,8 @@ def read(argv):
             Settings["allow-similar"] = True;
         elif opt in ("--no-fixme"):
             Settings["no-fixme"] = True;
+        elif opt in ("-d", "--debug"):
+            Settings["debug"] = True;
         else:
             raise FatalException("Undefined option '%s'."%(opt));
     

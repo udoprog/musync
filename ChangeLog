@@ -1,3 +1,7 @@
+Thu Oct  9 18:57:08 CEST 2008 by udoprog
+	* added support for mp4 and ape in metadata reading,
+	did a rework to make it more flexible.
+
 Thu Oct  9 05:36:02 CEST 2008 by plastbunker
 	* added year information
 	* fixed broken termcaps

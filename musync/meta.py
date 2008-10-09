@@ -25,16 +25,23 @@ import musync.printer as Printer;
 import traceback;
 
 #partials
-from mutagen import flac, oggvorbis, easyid3
-from mutagen.mp3 import MP3
-from musync.errors import WarningException, FatalException;
+from mutagen.easyid3 import EasyID3;
+from mutagen.id3 import ID3FileType;
+from mutagen.apev2 import APEv2File;
+from mutagen.oggvorbis import OggFileType;
+from mutagen.mp3 import MP3;
+from mutagen.mp4 import MP4;
+from mutagen.flac import FLAC;
+
+from musync.errors import WarningException
+from musync.error import FatalException;
 from musync.opts import Settings;
 from musync.subp import sanitize_with_filter;
 from mutagen import File;
 
 #emergency stuff
 from mutagen.id3 import TXXX;
-from mutagen.id3 import TDRC;
+from mutagen.id3 import TDOR;
 
 # 
 #
@@ -42,14 +49,76 @@ from mutagen.id3 import TDRC;
 #
 #
 
+blankmeta = {
+        'artist': None,
+        'album': None,
+        'track': None,
+        'date': None,
+        'title': None
+    };
+
+def easyapev2(f):
+    """
+    takes an apev2 tagged file and returns something that is not insane.
+    """
+
+    global blankmeta;
+
+    dictionary = {
+        "year": "date"
+    };
+
+    ameta = blankmeta.copy();
+
+    # check all keys in lowercase and match against template.
+    for k in f:
+        if k.lower() in ameta.keys():
+            ameta[k.lower()] = [unicode(f[k])];
+    
+    return ameta;
+
+def easymp4(f):
+    """
+    get sane metadata from an insane file type.
+    """
+    dictionary = {
+        "\xa9art": "artist",
+        "\xa9alb": "album",
+        "\xa9day": "date",
+        "\xa9nam": "title",
+        "trkn": "track"
+    };
+
+    ameta = blankmeta.copy();
+    for k in f.tags.keys():
+        key = k.lower();
+        # dictionary replace all keys
+        if key in dictionary:
+            key = dictionary[key];
+
+        # set keys in template
+        if key in ameta.keys():
+            ameta[key] = f.tags[k];
+    
+    if ameta["track"] is not None:
+        # nice hack to workaround the fact that the retarded file _often_
+        # contains a tuple.
+        if type(ameta["track"][0]) == tuple: 
+            ameta["track"] = [unicode(ameta["track"][0][0])];
+    
+    return ameta;
+
 def extractkey(p, key):
     """
     this is bugbug
     """
+
     for v in p.tags.values():
         if isinstance(v, TXXX):
             if v.desc.lower() == key:
                 return v.text;
+        elif key == "date" and isinstance(v, TDOR):
+            return v.text;
     
     return None;
 
@@ -63,8 +132,8 @@ def openaudio(p):
 
     #check before to simplify exception throwing.
     #these are the hardcoded extensions that mutagen supports.
-    if p.ext not in ["flac","ogg","mp3"]:
-        raise WarningException( "unknown extension '%s' - %s"%(p.ext, p.path) );
+    #if p.ext not in ["flac","ogg","mp3"]:
+    #    raise WarningException( "unknown extension '%s' - %s"%(p.ext, p.path) );
 
     ameta = {
         'artist': None,
@@ -79,16 +148,33 @@ def openaudio(p):
         'tracknumber': 'track'
     };
     
-    try:
-        if ( p.ext == "flac" ):
-            audio = flac.FLAC(p.path);
-        elif ( p.ext == "ogg" ):
-            audio = oggvorbis.Open(p.path)
-        elif ( p.ext == "mp3" ):
-            audio = MP3(p.path, ID3=easyid3.EasyID3);
-    except Exception,e:
-        Printer.log(p.path + ":\n" + traceback.format_exc() );
-        raise FatalException("mutagen crashed");
+    f = File(p.path);
+    if isinstance(f, ID3FileType):
+        audio = EasyID3(p.path);
+        if "audio/mp3" in f.mime:
+            p.ext = "mp3";
+        else:
+            raise WarningException("unimplemented file type %s: [%s]"%(type(f), f.mime));
+    elif isinstance(f, OggFileType):
+        audio = f;
+        if "audio/vorbis" in f.mime:
+            p.ext = "ogg";
+        else:
+            raise WarningException("unimplemented file type %s: [%s]"%(type(f), f.mime));
+    elif isinstance(f, FLAC):
+        audio = f;
+        p.ext = "flac";
+    elif isinstance(f, MP4):
+        audio = easymp4(f);
+        p.ext = "mp4";
+    elif isinstance(f, APEv2File):
+        audio = easyapev2(f);
+        if "audio/ape" in f.mime:
+            p.ext = "ape";
+        else:
+            raise WarningException("unimplemented file type %s: [%s]"%(type(f), f.mime));
+    else:
+        raise WarningException("unsupported file type %s: [%s]"%(type(f), f.mime));
 
     #this is not good.
     if audio is None:
@@ -107,7 +193,10 @@ def openaudio(p):
     # try to force the data out of the retard file.
     for k in ameta:
         if ameta[k] is None:
-            ameta[k] = extractkey(File(p.path), k);
+            ameta[k] = extractkey(f, k);
+    
+    if Settings["debug"]:
+        print ameta;
     
     return ameta;
 
@@ -136,7 +225,7 @@ def readmeta(p):
 
         # try to read from file.
         try:
-            meta[to_key] = audio[from_key][0];
+            meta[to_key] = str(audio[from_key][0]);
         except Exception,e:
             raise FatalException("metadata corrupt - %s"%(p.path));
 
@@ -177,6 +266,7 @@ def cleanmeta(meta):
 
     for date in Settings["dateformat"].split("|"):
         import time;
+        
         try:
             d = time.strptime(meta["year"], date);
         except Exception, e:
