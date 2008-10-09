@@ -1,6 +1,8 @@
 
+
 Thu Oct  9 05:36:02 CEST 2008 by plastbunker
 	* added year information
+	* fixed broken termcaps
 
 Thu May  8 03:49:53 CEST 2008 by udoprog
 	* coloring no longer does anything, since terminal capabilites will check

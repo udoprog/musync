@@ -89,8 +89,10 @@ class TermCaps:
     def blankcaps(self):
         for x in self._capabilites:
             self.bcolors[x]="";
+            self.colors[x]="";
         for x in self._colors:
             self.bcolors[x]="";
+            self.colors[x]="";
 
     def setstdout(stream):
         self.stdout=stream;
