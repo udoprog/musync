@@ -11,7 +11,7 @@ HOMEPAGE="http://sf.net/projects/musync"
 IUSE="bash-completion"
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="M~"
 
 DEPEND="
 >=dev-lang/python-2.3
