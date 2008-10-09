@@ -30,12 +30,27 @@ from mutagen.mp3 import MP3
 from musync.errors import WarningException, FatalException;
 from musync.opts import Settings;
 from musync.subp import sanitize_with_filter;
+from mutagen import File;
+
+#emergency stuff
+from mutagen.id3 import TXXX;
 
 # 
 #
 #
 #
 #
+
+def extractkey(p, key):
+    """
+    this is bugbug
+    """
+    for v in p.tags.values():
+        if isinstance(v, TXXX):
+            if v.desc.lower() == key:
+                return v.text;
+    
+    return None;
 
 def openaudio(p):
     """
@@ -50,26 +65,49 @@ def openaudio(p):
     if p.ext not in ["flac","ogg","mp3"]:
         raise WarningException( "unknown extension '%s' - %s"%(p.ext, p.path) );
 
+    ameta = {
+        'artist': None,
+        'album': None,
+        'track': None,
+        'tracknumber': None,
+        'date': None,
+        'title': None
+    };
+
+    translate = {
+        'tracknumber': 'track'
+    };
+    
     try:
         if ( p.ext == "flac" ):
             audio = flac.FLAC(p.path);
         elif ( p.ext == "ogg" ):
             audio = oggvorbis.Open(p.path)
         elif ( p.ext == "mp3" ):
-            # fix some sort of sanity check here.
             audio = MP3(p.path, ID3=easyid3.EasyID3);
     except Exception,e:
         Printer.log(p.path + ":\n" + traceback.format_exc() );
         raise FatalException("mutagen crashed");
 
     #this is not good.
-    if audio.tags is None:
+    if audio is None:
         raise FatalException("file contains no metadata");
     
-    if len(audio) is 0:
-        raise FatalException("file contains blank metadata");
+    for k in  ameta.keys():
+        if k in audio.keys():
+            ameta[k] = audio[k];
+
+    # try to force the data out of the retard file.
+    for k in ameta:
+        if ameta[k] is None:
+            ameta[k] = extractkey(File(p.path), k);
+
+    # translate brainfucked keys.
+    for k in translate.keys():
+        if ameta[k] is not None:
+            ameta[translate[k]] = ameta[k];
     
-    return audio;
+    return ameta;
 
 def readmeta(p):
     """

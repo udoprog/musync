@@ -75,7 +75,7 @@ class build_py(commands_build_py):
 
 setup(
     name = "musync",
-    version = "0.4.0-r3",
+    version = "0.4.0_rc3",
     description = "Musync is a simple and usable music organizer which uses metadata to sort the music into libraries.",
     author = "John-John Tedro, Albin Stjerna, Oscar Eriksson",
     author_email = "johnjohn.tedro@gmail.com, albin.stjerna@gmail.com, oscar.eriks@gmail.com",
