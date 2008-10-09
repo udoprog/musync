@@ -1,4 +1,7 @@
 
+Thu Oct  9 05:36:02 CEST 2008 by plastbunker
+	* added year information
+
 Thu May  8 03:49:53 CEST 2008 by udoprog
 	* coloring no longer does anything, since terminal capabilites will check
 	if coloring is possible. if not it is just ignored. there was also some
