@@ -1,0 +1,87 @@
+\subsection{Syntax}
+If you are familiar with the python RawConfigParser\footnote{see \url{http://docs.python.org/lib/module-ConfigParser.html}} you should know already how keys and sections are defined.
+Musync has a few quirks when it comes to parsing these, so it might be best to read on, even though most things would seem quite familiar.
+
+Configurations are read from /etc/musync.conf and ~/.musync in that respective order.
+
+\emph{The key that is defined last, is the one used}
+
+Musync overwrites it's configuration in \emph{sections}.
+These act as \emph{action} references and tell musync how to behave.
+And they are used with the \verb!-c! commandline option.
+
+Sections look like the following:
+
+\begin{verbatim}
+[foo]
+\end{verbatim}
+
+These are followed by a number of keys, which should look like the following.
+
+\begin{verbatim}
+[general] # the general section is always loaded
+root: /mnt/hdb1/music
+coloring: true
+[foo]
+root: /mnt/hdc1/music
+[bar]
+coloring: false
+\end{verbatim}
+
+\subsection{Keys}
+\paragraph{root}
+Root directory where files will be handled into. Defaults to None. 
+
+\paragraph{dir}
+This gives you a way to tell which directory the files that are created will have. 
+
+\paragraph{format}
+This allows you to format 
+
+\paragraph{lock-file}
+The file used for storing lock information in. Defaults to None. 
+
+\paragraph{lock}
+Set to true or false, depending on if you wan't files to be locked after an add or fix operation. 
+
+\paragraph{default-config}
+This is the default configuration string used, when commandline option --config (or -c) is not specified.
+This can handle linear references in your configuration, but will fail if you try to configure it with circular references (which could otherwise result in infinite loops). Defaults to None. 
+
+\paragraph{log}
+Where the log-file will be written, containing errors and such. Defaults to /tmp/musync.log 
+
+\paragraph{fix-log}
+Where the fix-log will be written, containing names of files that need fixes before they can be used with Musync.
+These are absolute path, seperated by newlines \verb!\n!. Defaults to /tmp/musync-fixes.log 
+
+\paragraph{add-with}
+The command to run when adding files to the depository. Notice the python vars \verb!\%(source)s! and \verb!%(dest)s!. 
+
+\paragraph{rm-with}
+The command to run when removing files to the depository. Notice the python var \verb!\%(target)s!. 
+
+\paragraph{filter-with}
+The is the command to clean meta data strings with.
+The python variable \verb!\%(field)s! is available to specify different files for different meta fields.
+
+example: \verb!/usr/bin/sed -r -f /etc/musync.sed!
+
+or: \verb!/usr/bin/sed -r -f /etc/musync.%(field)s.sed!
+
+{\scriptsize\verb!%(field)s! will be expanded to either \emph{artist}, \emph{album} or \emph{title}}
+
+\paragraph{hash-with}
+The command used to get the hash for a file. Output may be just the hash or the hash with a space postfix containing anything. 
+
+\paragraph{check-hash}
+Set to true or false, depending on if you want hash checking enabled or not. 
+
+\paragraph{coloring}
+Set to true or false, depending on if you want colored output or not. 
+
+\paragraph{overwrite}
+If the file that is to be written already exists - and this option is true (which can be set with -O or --overwrite aswell). All files that already exists will be first removed with rm-with before adding file. 
+
+\paragraph{no-fixme}
+Prevents fixme-actions from being taken. This might be necessary if you really want to add broken files to your repository.
