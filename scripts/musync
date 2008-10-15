@@ -247,62 +247,65 @@ def op_unlock(p):
 def main(argv):
     musync.locker.init();
     
-    if not os.path.isdir(Settings["root"]):
-        raise FatalException("'%s' is not a directory or does not exist! "%( Settings["root"] ));
-
     if len(argv) < 1:
         raise FatalException("To few arguments");
     
     #try to figure out operation.
     if args[0] in ("rm","remove"):  #remove files from depos
 
-        if Settings["pretend"]:
-            Printer.boldnotice("# Pretending to remove files...");
-        else:
-            Printer.boldnotice("# Removing files...");
+        if Settings["verbose"]:
+            if Settings["pretend"]:
+                Printer.boldnotice("# Pretending to remove files...");
+            else:
+                Printer.boldnotice("# Removing files...");
 
         musync.op.operate(args[1:], op_remove);
     elif args[0] in ("add","sync"): #syncronize files with musicdb
 
-        if Settings["pretend"]:
-            Printer.boldnotice("# Pretending to add files...");
-        else:
-            Printer.boldnotice("# Adding files...");
+        if Settings["verbose"]:
+            if Settings["pretend"]:
+                Printer.boldnotice("# Pretending to add files...");
+            else:
+                Printer.boldnotice("# Adding files...");
             
         musync.op.operate(args[1:], op_add);
 
     elif args[0] in ("fix"): #syncronize files with musicdb
 
-        if Settings["pretend"]:
-            Printer.boldnotice("# Pretending to fix files...");
-        else:
-            Printer.boldnotice("# Fixing files...");
+        if Settings["verbose"]:
+            if Settings["pretend"]:
+                Printer.boldnotice("# Pretending to fix files...");
+            else:
+                Printer.boldnotice("# Fixing files...");
 
         # make sure all paths are referenced relative to root.
         musync.op.operate(args[1:], op_fix);
     elif args[0] in ("lock"):
 
-        if Settings["pretend"]:
-            Printer.boldnotice("# Pretending to lock files...");
-        else:
-            Printer.boldnotice("# Locking files...");
+        if Settings["verbose"]:
+            if Settings["pretend"]:
+                Printer.boldnotice("# Pretending to lock files...");
+            else:
+                Printer.boldnotice("# Locking files...");
         
         musync.op.operate(args[1:], op_lock);
     elif args[0] in ("unlock"):
 
-        if Settings["pretend"]:
-            Printer.boldnotice("# Pretending to unlock files...");
-        else:
-            Printer.boldnotice("# Unlocking files...");
+        if Settings["verbose"]:
+            if Settings["pretend"]:
+                Printer.boldnotice("# Pretending to unlock files...");
+            else:
+                Printer.boldnotice("# Unlocking files...");
 
         musync.op.operate(args[1:], op_unlock);
     else:
         raise FatalException("There is no operation called '%s'"%(args[0]));
 
-    if Settings["pretend"]:
-        Printer.boldnotice("# Pretending done!");
-    else:
-        Printer.boldnotice("# Done!");
+    if Settings["verbose"]:
+        if Settings["pretend"]:
+            Printer.boldnotice("# Pretending done!");
+        else:
+            Printer.boldnotice("# Done!");
 
     musync.locker.stop();
     return 0;
@@ -341,7 +344,7 @@ if __name__ == "__main__":
     except SystemExit,e: # interrupts and such
         sys.exit(e);
    
-    if args is not None:
+    if Settings["verbose"] and args is not None:
         Printer.boldnotice("handled %d files, %d dirs"%(musync.op.handled_files, musync.op.handled_dirs));
     
     musync.hints.run();

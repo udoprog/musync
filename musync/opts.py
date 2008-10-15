@@ -100,10 +100,11 @@ Settings = {
     #naming
     "dir":              "%(artist)s/%(album)s",
     "format":           "%(track)02d-%(title)s%(ext)s",
-    "supported-ext":    ".mp3,.ogg,.flac",
+    #"supported-ext":    ".mp3,.ogg,.flac",
     #options
     "suppressed":       "notice,warning",
     "silent":           False,
+    "verbose":          False,
     "recursive":        False,
     "force":            False,
     "lock":             False,
@@ -167,14 +168,17 @@ def settings_postmanip():
     premanip > sanity > postmanip
     """
     Settings["root"] = os.path.abspath(os.path.expanduser(Settings["root"]));
-    Settings["supported-ext"] = Settings["supported-ext"].split(",");
-
     import musync.locker; # needed for settings global variables
     musync.locker.root = Settings["root"];
     musync.locker.lock_file = Settings["lock-file"];
    
     # attempt to create 'lock-file'
     lockpath=musync.locker.get_lockpath();
+
+    if not os.path.isdir(Settings["root"]):
+        Printer.boldnotice("         root: Root library directory non existant, cannot continue.");
+        Printer.boldnotice("current value: %s"%(Settings["root"]));
+        return False;
     
     if not os.path.isfile(lockpath):
         Printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
@@ -280,6 +284,7 @@ def OverlaySettings( parser, sect ):
             #Parse booleans
             if opt in [
                 "silent",
+                "verbose",
                 "force",
                 "coloring",
                 "check-hash",
@@ -323,7 +328,7 @@ def read(argv):
         # see: http://docs.python.org/lib/module-getopt.html
         opts, args = getopt.gnu_getopt(
             argv,
-            "hepVRLsCBfhl:r:c:M:T:d",
+            "hepVRLsvCBfhl:r:c:M:T:d",
             [
                 "help",
                 "export",
@@ -333,6 +338,7 @@ def read(argv):
                 "lock",
                 "progress",
                 "silent",
+                "verbose",
                 "coloring",
                 "force",
                 "check-hash",
@@ -371,6 +377,8 @@ def read(argv):
             Settings["progress"] = True;
         elif opt in ( "-s", "--silent" ):
             Settings["silent"] = True;
+        elif opt in ( "-v", "--verbose" ):
+            Settings["verbose"] = True;
         elif opt in ("-C", "--coloring"):
             Settings["coloring"] = True;
         elif opt in ("-r", "--root"):
@@ -485,7 +493,9 @@ def Usage ():
             --recursive (or -R) 'recursive':
                 Scan directories recursively.
             --silent (or -s) 'silent':
-                Supresses what is defined in 'suppressed'
+                Supresses what is defined in 'suppressed'.
+            --verbose (or -v) 'verbose':
+                Makes musync more talkative.
             --coloring (or -C) 'coloring':
                 Invokes coloring of output.
             --root (or -r) <target_root>
