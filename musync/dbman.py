@@ -93,15 +93,15 @@ def add(p, t):
         sp.rm_with(t.path);
 
     #FIXED intelligent exists check.
-    if not Settings["allow-similar"]:
-        for ext in Settings["supported-ext"]:
-            d=musync.commons.Path("%s/%s.%s"%(t.dir, t.basename, ext));
-            if (d.exists() or d.islink()):
-                raise WarningException(
-                    "similar file already exists (--allow-similar to ignore): %s"%(
-                        d.relativepath()
-                    )
-                );
+    #if not Settings["allow-similar"]:
+    #    for ext in Settings["supported-ext"]:
+    #        d=musync.commons.Path("%s/%s.%s"%(t.dir, t.basename, ext));
+    #        if (d.exists() or d.islink()):
+    #            raise WarningException(
+    #                "similar file already exists (--allow-similar to ignore): %s"%(
+    #                    d.relativepath()
+    #                )
+    #            );
 
     attempts = 0;
     parity = None;
@@ -157,7 +157,7 @@ def fix_file(p, t):
 
 def fix_dir(p):
     if not p.isempty():
-        Printer.notice("sane - %s/"%(p.relativepath()));
+        Printer.notice("sane - %s"%(p.relativepath()));
         return;
     
     Printer.action("removing empty dir - %s"%(p.relativepath()));

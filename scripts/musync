@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # musync, a minimalistic set of scripts for syncronization of music
@@ -37,6 +37,7 @@ import musync.opts; #options
 import musync.dbman as db;
 import musync.op;
 import musync.hints;
+import musync.meta;
 
 import sys, os;
 import traceback;
@@ -164,19 +165,19 @@ def op_fix(p):
     if not p.exists():
         raise WarningException("path not found: %s"%(p.path));
     
-    if p.isfile() and p.ext not in Settings["supported-ext"]:
-        if p.path == musync.locker.get_lockpath():
-            Printer.action("ignoring lock-file");
-            return;
-
-        if Settings["pretend"]:
-            Printer.notice("would remove: %s (unknown ext.)"%(p.path));
-        else:
-            Printer.action("removing (unknown ext.): %s"%(p.path));
+    if p.isfile():
+        try:
+            musync.meta.openaudio(p);
+        except Exception, e:
+            if p.path == musync.locker.get_lockpath():
+                Printer.action("ignoring lock-file");
+                return;
+            
+            Printer.action("removing (%s): %s"%(p.path, str(e)));
             import musync.subp as sp;
             sp.rm_with(p.path);
-        return;
-    
+            return;
+	
     t = None;
     if p.isfile():
         meta = musync.meta.readmeta(p);

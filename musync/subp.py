@@ -32,6 +32,7 @@ def filter_with(str, field):
     """
     Wrapper for use with the key 'filter-with'.
     """
+    
     filter_cmd = Settings["filter-with"].split(' ');
     filter_cmd = [ x%{'field': field} for x in filter_cmd ];
     return safe_child(sc_filter_with, [filter_cmd, str]);
@@ -45,7 +46,7 @@ def sc_filter_with(args):
     proc.stdin.close();
     filter_data = proc.stdout.read();
     state = proc.wait();
-    return (state,filter_data);
+    return (state, filter_data);
 
 def transcode_with(cmd, source, dest):
     trans_cmd = cmd.split(' ');
@@ -113,7 +114,7 @@ def safe_child(call, args):
     while True:
         if i > 0:
             raise FatalException("child process failed to many times");
-
+        
         try:
             (state, ret) = call(args);
         except Exception, e:
@@ -121,7 +122,7 @@ def safe_child(call, args):
             state = 1;
         
         if state != 0:
-            Printer.warning( "shaked process" );
+            Printer.warning( "shaked process %s, %s"%(repr(call), repr(args)) );
             i += 1;
             continue;
 

@@ -11,11 +11,12 @@ import os,sys
 #You could be more specific.
 files = ["README","INSTALL","COPYING","ChangeLog"]
 if os.name != "posix":
-    print "Your OS isn't officially supported - sorry"
-    sys.exit(1);
+  print "Your OS isn't officially supported - sorry"
+  sys.exit(1);
+else:
+  dfiles = [("/usr/share/musync",["cfg/posix/musync.conf","cfg/posix/musync.sed"])]
+  conf_decl = "cfgfile=\"/etc/musync.conf\"\n"
 
-dfiles = [("/usr/share/musync",["cfg/posix/musync.conf","cfg/posix/musync.sed"])]
-conf_decl = "cfgfile=\"/etc/musync.conf\"\n"
 msg = """
 Examples in /usr/share/musync,
 copy these to /etc for almost-out-of-the-box functionality.
@@ -29,7 +30,6 @@ Musync Devs
 
 class install(command_install):
     def run(self):
-
         ### CHECK DEPS ###
         print "checking module dependancies"
         try:
@@ -48,7 +48,7 @@ class install(command_install):
             return;
             
         command_install.run(self);
-
+        
         print msg
 
 class build_py(commands_build_py):
@@ -59,7 +59,7 @@ class build_py(commands_build_py):
         commands_build_py.build_packages(self);
         global conf_decl
 
-        f = open("build/lib/musync/opts.py","r");
+        f = open("build/lib/musync/opts.py", "r");
         print "changing opts.py to suite operating system..."
         lines = f.readlines();
         for x,line in enumerate(lines):
@@ -75,7 +75,7 @@ class build_py(commands_build_py):
 
 setup(
     name = "musync",
-    version = "0.4.0_rc3",
+    version = "0.4.0_rc4",
     description = "Musync is a simple and usable music organizer which uses metadata to sort the music into libraries.",
     author = "John-John Tedro, Albin Stjerna, Oscar Eriksson",
     author_email = "johnjohn.tedro@gmail.com, albin.stjerna@gmail.com, oscar.eriks@gmail.com",

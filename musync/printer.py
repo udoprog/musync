@@ -66,6 +66,7 @@ class TermCaps:
             import curses
             curses.setupterm();
         except:
+            # if caps for some reason are not possible. Set them to blanks.
             self.blankcaps();
             return;
         
@@ -87,6 +88,9 @@ class TermCaps:
                 self.colors[color]="";
     
     def blankcaps(self):
+        """
+        Resets all capabilities to blanks.
+        """
         for x in self._capabilites:
             self.bcolors[x]="";
             self.colors[x]="";
@@ -95,9 +99,15 @@ class TermCaps:
             self.colors[x]="";
 
     def setstdout(stream):
+        """
+        Change standard stream.
+        """
         self.stdout=stream;
 
     def write(self, str, stream=None, tc=None):
+        """
+        Write something to a stream using termcaps.
+        """
         if tc is None:
             tc = self.tc;
 
@@ -160,7 +170,7 @@ def fixlog(path, meta):
     for key in ["album","artist","title","track"]:
         if meta[key] is None:
             meta[key] = "None";
-        f_fixlog.write("%s: %s"%(key, meta[key]));
+        f_fixlog.write("%s: %s"%(key, meta[key].encode("utf-8")));
         f_fixlog.write( '\n' );
 
     needfixes = True;

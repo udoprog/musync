@@ -18,6 +18,7 @@
 #
 
 from musync.errors import WarningException, FatalException; # exceptions
+import string;
 
 DB=[]
 DB_NEWS=[]
@@ -79,7 +80,7 @@ def parentislocked(path):
             raise WarningException("%s - failed to get relativepath"%(path.path));
         if relpath in DB:
             return True;
-
+    
     return False;
 
 import os.path;
@@ -96,11 +97,11 @@ def init():
     lockpath=get_lockpath();
 
     if not os.path.isfile(lockpath):
-        f = open(lockpath,"w");
+        f = open(lockpath, "w");
         f.close();
     
-    f = open(lockpath,"r");
-    DB = [x[:-1] for x in f.readlines()];
+    f = open(lockpath, "r");
+    DB = [x.strip(string.whitespace) for x in f.readlines()];
     f.close();
 
 def stop():
@@ -110,13 +111,14 @@ def stop():
         lockpath=get_lockpath();
 
         if not os.path.isfile(lockpath):
-            f = open(lockpath,"w");
+            f = open(lockpath, "w");
             f.close();
         
         if removed:
-            f = open(lockpath,"w");
+            f = open(lockpath, "w");
             for p in DB:
-                f.write(p);
+                f.writelines(p);
+                f.write("\n");
             f.close();
         else:
             f = open(lockpath, "a");

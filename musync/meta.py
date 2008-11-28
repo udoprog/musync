@@ -155,6 +155,10 @@ def openaudio(p):
     };
     
     f = File(p.path);
+    
+    if f is None:
+        raise WarningException("Unknown file type: %s"%(p.path));
+
     if isinstance(f, ID3FileType):
         audio = EasyID3(p.path);
         if "audio/mp3" in f.mime:
@@ -231,7 +235,7 @@ def readmeta(p):
 
         # try to read from file.
         try:
-            meta[to_key] = str(audio[from_key][0]);
+            meta[to_key] = audio[from_key][0];
         except Exception,e:
             raise FatalException("metadata corrupt - %s"%(p.path));
 

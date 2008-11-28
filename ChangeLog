@@ -1,3 +1,7 @@
+Fri Nov 28 20:26:33 CET 2008 by udoprog
+	* fixed minor issues with lockfiles dissapearing.
+	* added several configuration warnings.
+
 Thu Oct  9 18:57:08 CEST 2008 by udoprog
 	* added support for mp4 and ape in metadata reading,
 	did a rework to make it more flexible.

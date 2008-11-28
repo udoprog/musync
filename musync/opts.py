@@ -35,15 +35,18 @@
 
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
-import printer as Printer;
-import os, getopt, tempfile;
+import printer;
+import os;
+import getopt;
+import tempfile;
 
 #operating system problems
 tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
+#cfgfile="d:\\dump\\programs\\musync_x86\\musync.conf"
 MUSYNC_CONF_DECL
-version = (0,4,0,"_rc3");
+version = (0,4,0,"_rc4");
 version_str = "Musync, music syncronizer %d.%d.%d%s";
 REPORT_ADDRESS="http://sourceforge.net/projects/musync or johnjohn.tedro@gmail.com";
 
@@ -131,6 +134,12 @@ def settings_premanip():
     this is executed in order:
     premanip > sanity > postmanip
     """
+
+    # encoding everything as strings.
+    for k in Settings.keys():
+      if isinstance(Settings[k], unicode):
+        Settings[k] = Settings[k].encode("utf-8");
+
     # parse transcoding.
     if Settings["transcode"]:
         arg = Settings["transcode"];
@@ -156,7 +165,7 @@ def settings_premanip():
             raise FatalException("Modify key '%s' invalid"%( key ));
         else:
             Settings["modify"][key] = modification;
-            #Printer.notice("using: %s=\"%s\""%( key, modification ));
+            #printer.notice("using: %s=\"%s\""%( key, modification ));
 
     return True;
     
@@ -176,19 +185,19 @@ def settings_postmanip():
     lockpath=musync.locker.get_lockpath();
 
     if not os.path.isdir(Settings["root"]):
-        Printer.boldnotice("         root: Root library directory non existant, cannot continue.");
-        Printer.boldnotice("current value: %s"%(Settings["root"]));
+        printer.error("         root: Root library directory non existant, cannot continue.");
+        printer.error("current value: %s"%(Settings["root"]));
         return False;
     
     if not os.path.isfile(lockpath):
-        Printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
-        Printer.boldnotice("      current value (relative to root): %s"%(lockpath));
-        Printer.boldnotice("                             lock-file: %s"%(Settings["lock-file"]));
+        printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
+        printer.boldnotice("      current value (relative to root): %s"%(lockpath));
+        printer.boldnotice("                             lock-file: %s"%(Settings["lock-file"]));
         try:
             f = open(lockpath, "w");
             f.close();
         except Exception, e:
-            Printer.error("    Failed to create - %s"%(str(e)));
+            printer.error("    Failed to create - %s"%(str(e)));
             return False;
     
     return True;
@@ -207,18 +216,18 @@ def settings_sanity():
     try:
         Settings["format"]%{'artist':"",'album':"",'title':"",'track':0,'ext':""};
     except TypeError:
-        Printer.error("configuration key 'format' invalid");
+        printer.error("configuration key 'format' invalid");
         err=True;
 
     #if not os.path.iswriteable(Settings["root"]):
-    #    Printer.error("root: is not writeable");
+    #    printer.error("root: is not writeable");
     #    err=True;
 
     # none sanitycheck
     for key in ["root","lock-file","add-with","rm-with","filter-with","hash-with"]:
         if Settings[key] is None:
-            Printer.error("%s: must exist."%(key));
-            Printer.error("    current value: %s"%(Settings[key]));
+            printer.error("%s: must exist."%(key));
+            printer.error("    current value: %s"%(Settings[key]));
             err=True;
         else:
             # do a dummy replace to check formats and SHIT
@@ -235,9 +244,9 @@ def settings_sanity():
                         'target': "fbz",
                     };
             except ValueError, e:
-                Printer.error("%s: %s."%(key, str(e)));
-                Printer.error("    current value: %s"%(Settings[key].replace("%", "%%")));
-                Printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
+                printer.error("%s: %s."%(key, str(e)));
+                printer.error("    current value: %s"%(Settings[key].replace("%", "%%")));
+                printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
                 err = True;
                 
     
@@ -245,33 +254,39 @@ def settings_sanity():
     for key in ["rm-with","add-with","filter-with"]:
         if Settings[key] is None: # these should have been caught earlier.
             continue;
-        if not os.path.exists(Settings[key].split(' ')[0]):
-            Printer.error("%s: could not find path - check configuration and modify key."%(key));
-            Printer.error("    current value: %s"%(Settings[key]));
+        if not os.path.isfile(Settings[key].split(' ')[0]):
+            printer.error("%s: could not find path - check configuration and modify key."%(key));
+            printer.error("    current value: %s"%(Settings[key]));
             err=True;
 
     if Settings["transcode"]:
         to=Settings["transcode"][1];
         for fr in Settings["transcode"][0]:
-            if "%s-to-%s"%(fr, to) not in Settings.keys():
-                Printer.error(
+            key = "%s-to-%s"%(fr, to);
+            if key not in Settings.keys():
+                printer.error(
                     "transcoding is specified but corresponding <from ext>-to-<to ext> key is missing in configuration."
                 );
-                Printer.error("transcode: %s=%s"%(fr, to));
+                printer.error("transcode: %s=%s"%(fr, to));
                 err = True;
+            else:
+                cmd = Settings[key].split(' ')[0];
+                if not os.path.isfile(cmd):
+                  printer.error("%s: %s"%(key, "command '%s' could not be located, maybe you have supplied an incorrect path?"%(cmd)))
+                  err=True;
 
     if err:
-        Printer.error("");
-        Printer.error("One or more configuration keys where invalid");
-        Printer.error("Check %s for errors (correct paths, directories and commands)."%(cfgfile));
-        Printer.error("Perhaps you forgot to use --config (or -c)?");
-        Printer.error("");
+        printer.error("");
+        printer.error("One or more configuration keys where invalid");
+        printer.error("Check %s for errors (correct paths, directories and commands)."%(cfgfile));
+        printer.error("Perhaps you forgot to use --config (or -c)?");
+        printer.error("");
         return False;
 
     #WARNINGS
     #deprecated since output now is written to log.
     #if Settings["progress"] and Settings["pretend"]:
-    #    Printer.warning("options 'progress' and 'pretend' doesn't go well together.");
+    #    printer.warning("options 'progress' and 'pretend' doesn't go well together.");
 
     return True;
 
@@ -409,7 +424,7 @@ def read(argv):
     # no config specified, use default.
     if not configuration:
         configuration = Settings["default-config"];
-        #Printer.notice("[using 'default-config' since --config not found]");
+        #printer.notice("[using 'default-config' since --config not found]");
     
     #To avoid curcular references.
     anti_circle = [];
