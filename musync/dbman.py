@@ -30,11 +30,17 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+#
+# Filesystem based Database Manager.
+#
+#
+
 import os;
-import musync.subp as sp;
-from musync.opts import Settings;
-import musync.printer as Printer;
+import musync.subp;
 from musync.errors import WarningException, FatalException;
+from musync.opts import Settings;
+
+import musync.printer as Printer;
 
 import musync.commons;
 # Current artist and album in focus
@@ -66,12 +72,12 @@ def hash_compare(path1, path2):
     """
     compares two paths, uses hashing to see if they are equal.
     """
-    hash = sp.hash_with(path1);
-    hash2 = sp.hash_with(path2);
+    hash = musync.subp.hash_with(path1);
+    hash2 = musync.subp.hash_with(path2);
     return hash == hash2;
 
 def hash_get(path):
-    return sp.hash_with(path);
+    return musync.subp.hash_with(path);
 
 def add(p, t):
     "adds a file to the database"
@@ -87,21 +93,10 @@ def add(p, t):
 
     if (t.exists() or t.islink()) and not Settings["force"]:
         raise WarningException("file already exists: %s"%(t.relativepath()));
-
+    
     # by this time, we wan't it removed.
     if (t.exists() or t.islink()):
-        sp.rm_with(t.path);
-
-    #FIXED intelligent exists check.
-    #if not Settings["allow-similar"]:
-    #    for ext in Settings["supported-ext"]:
-    #        d=musync.commons.Path("%s/%s.%s"%(t.dir, t.basename, ext));
-    #        if (d.exists() or d.islink()):
-    #            raise WarningException(
-    #                "similar file already exists (--allow-similar to ignore): %s"%(
-    #                    d.relativepath()
-    #                )
-    #            );
+        musync.subp.rm_with(t.path);
 
     attempts = 0;
     parity = None;
@@ -117,7 +112,7 @@ def add(p, t):
         if Settings["check-hash"]:
             parity = hash_get(p.path);
 
-        sp.add_with(p.path, t.path);
+        musync.subp.add_with(p.path, t.path);
         
         # if settings prompt, check target file hash.
         if Settings["check-hash"]:
@@ -136,7 +131,7 @@ def remove (p, t):
     if t.path == p.path and not Settings["force"]:
         raise WarningException("target is same as source  (use --force if you really wan't to do this)");
    
-    sp.rm_with(t.path);
+    musync.subp.rm_with(t.path);
     return True;
 
 import musync.meta;
@@ -153,7 +148,7 @@ def fix_file(p, t):
         add(p, t);
 
     Printer.action("removing insane file - %s"%(p.relativepath()));
-    sp.rm_with(p.path);
+    musync.subp.rm_with(p.path);
 
 def fix_dir(p):
     if not p.isempty():
@@ -179,7 +174,7 @@ def transcode(p, t):
         raise WarningException("file already exists: %s"%(t.relativepath()));
 
     if not Settings["pretend"]:
-        sp.transcode_with(Settings["%s-to-%s"%(t_from, t_to)], p.path, tmp_file);
+        musync.subp.transcode_with(Settings["%s-to-%s"%(t_from, t_to)], p.path, tmp_file);
     # temp-file is the new source.
     p = musync.commons.Path(tmp_file);
     return (p, t);

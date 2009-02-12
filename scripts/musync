@@ -166,13 +166,14 @@ def op_fix(p):
         raise WarningException("path not found: %s"%(p.path));
     
     if p.isfile():
+        if p.path == musync.locker.get_lockpath():
+            Printer.action("ignoring lock-file");
+            return;
+        
+        # try to open, if you cannot, remove the files
         try:
             musync.meta.openaudio(p);
         except Exception, e:
-            if p.path == musync.locker.get_lockpath():
-                Printer.action("ignoring lock-file");
-                return;
-            
             Printer.action("removing (%s): %s"%(p.path, str(e)));
             import musync.subp as sp;
             sp.rm_with(p.path);
@@ -245,6 +246,20 @@ def op_unlock(p):
         musync.locker.unlock(p);
         Printer.notice("dir has been unlocked: %s"%(p.path));
 
+def op_name(p):
+    """
+    give a friendly suggestion of how you would name a specific file.
+    """
+    if p.isfile():
+        meta = musync.meta.readmeta(p);
+        cmeta = musync.meta.cleanmeta(meta);
+        
+        fmt = cmeta;
+        fmt["ext"] = p.ext;
+        print p.path, (Settings["format"]%fmt);
+    else:
+        raise WarningException("path is not a file");
+
 def main(argv):
     musync.locker.init();
     
@@ -299,6 +314,9 @@ def main(argv):
                 Printer.boldnotice("# Unlocking files...");
 
         musync.op.operate(args[1:], op_unlock);
+    elif args[0] in ("name"):
+        Printer.boldnotice("# Naming files...");
+        musync.op.operate(args[1:], op_name);
     else:
         raise FatalException("There is no operation called '%s'"%(args[0]));
 
@@ -337,6 +355,8 @@ if __name__ == "__main__":
             main(args);
     except FatalException,e: # break execution exception.
         Printer.error((str(e)));
+        if Settings["debug"]:
+            print traceback.format_exc();
     except Exception,e: # if this happens, something went really bad.
         Printer.error("Fatal Exception - %s"%(str(e)));
         print traceback.format_exc();
