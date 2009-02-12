@@ -533,6 +533,9 @@ def Usage ():
                 Transcode from one extension to another, tries to find
                 configuration variable *from*-to-*to*.
                 Example: -T flac>ogg (with key flac-to-ogg).
+            --debug (-d):
+                Will enable printing of  traceback on
+                FatalExceptions [exc].
 
         Fancies:
             --progress (or -B):
