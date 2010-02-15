@@ -276,7 +276,9 @@ def op_name(pl, p):
     else:
         raise WarningException("path is not a file");
 
-def main(printer, logger, argv):
+def main(pl, argv):
+    printer, logger = pl;
+    
     musync.locker.init();
     
     if len(argv) < 1:
@@ -291,7 +293,7 @@ def main(printer, logger, argv):
             else:
                 printer.boldnotice("# Removing files...");
         
-        musync.op.operate(printer, logger, args[1:], op_remove);
+        musync.op.operate(pl, args[1:], op_remove);
     elif args[0] in ("add","sync"): #syncronize files with musicdb
 
         if Settings["verbose"]:
@@ -300,7 +302,7 @@ def main(printer, logger, argv):
             else:
                 printer.boldnotice("# Adding files...");
             
-        musync.op.operate(printer, logger, args[1:], op_add);
+        musync.op.operate(pl, args[1:], op_add);
     elif args[0] in ("fix"): #syncronize files with musicdb
 
         if Settings["verbose"]:
@@ -310,7 +312,7 @@ def main(printer, logger, argv):
                 printer.boldnotice("# Fixing files...");
 
         # make sure all paths are referenced relative to root.
-        musync.op.operate(printer, logger, args[1:], op_fix);
+        musync.op.operate(pl, args[1:], op_fix);
     elif args[0] in ("lock"):
 
         if Settings["verbose"]:
@@ -319,7 +321,7 @@ def main(printer, logger, argv):
             else:
                 printer.boldnotice("# Locking files...");
         
-        musync.op.operate(printer, logger, args[1:], op_lock);
+        musync.op.operate(pl, args[1:], op_lock);
     elif args[0] in ("unlock"):
 
         if Settings["verbose"]:
@@ -328,10 +330,10 @@ def main(printer, logger, argv):
             else:
                 printer.boldnotice("# Unlocking files...");
 
-        musync.op.operate(printer, logger, args[1:], op_unlock);
+        musync.op.operate(pl, args[1:], op_unlock);
     elif args[0] in ("name"):
         printer.boldnotice("# Naming files...");
-        musync.op.operate(printer, logger, args[1:], op_name);
+        musync.op.operate(pl, args[1:], op_name);
     else:
         raise FatalException("There is no operation called '%s'"%(args[0]));
 
@@ -366,14 +368,20 @@ if __name__ == "__main__":
    
     try:
         args = musync.opts.read(sys.argv[1:]);
-        logger = Printer.TermCaps(open(Settings["log"], "w"));
+        logger = None;
+        
+        try:
+          logger = Printer.TermCaps(open(Settings["log"], "w"));
+        except OSError, e:
+          raise FatalException(str(e));
+        
         if args is not None: # a nice way to go
-            main(printer, logger, args);
-    except FatalException,e: # break execution exception.
+            main((printer, logger), args);
+    except FatalException, e: # break execution exception.
         printer.error((str(e)));
         if Settings["debug"]:
             print traceback.format_exc();
-    except Exception,e: # if this happens, something went really bad.
+    except Exception, e: # if this happens, something went really bad.
         printer.error("Fatal Exception - %s"%(str(e)));
         print traceback.format_exc();
         printer.error("Something went very wrong, please report this error at %s"%(musync.opts.REPORT_ADDRESS));

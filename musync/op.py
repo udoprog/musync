@@ -37,17 +37,20 @@ handled_files = 0;
 
 import cStringIO;
 
-def operate(printer, logger, args, call, inroot=False):
+def operate(pl, args, call, inroot=False):
     """
     Operation abstraction, this is the only function used by different operations.
     """
+    
+    printer, logger = pl;
+    
     for p in readargs(args, inroot):
         if musync.sign.Interrupt is True:
             musync.sign.setret(musync.sign.INTERRUPT);
             raise FatalException("Caught Interrupt");
         
         try:
-            call( (printer, logger), p );
+            call(pl, p);
         except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
             printer.warning( str(e) );
 #    if Settings["progress"]: ## run with progress.
