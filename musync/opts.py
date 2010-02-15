@@ -45,7 +45,7 @@ tmp=tempfile.gettempdir(); #general temp directory
 
 ### This is changed with setup.py to suite environment ###
 #cfgfile="d:\\dump\\programs\\musync_x86\\musync.conf"
-MUSYNC_CONF_DECL
+cfgfiles=[["/", "etc", "musync.conf"], ["~", ".musync"]];
 version = (0,4,0,"_rc4");
 version_str = "Musync, music syncronizer %d.%d.%d%s";
 REPORT_ADDRESS="http://sourceforge.net/projects/musync or johnjohn.tedro@gmail.com";
@@ -274,11 +274,11 @@ def settings_sanity():
                 if not os.path.isfile(cmd):
                   printer.error("%s: %s"%(key, "command '%s' could not be located, maybe you have supplied an incorrect path?"%(cmd)))
                   err=True;
-
+    
     if err:
         printer.error("");
         printer.error("One or more configuration keys where invalid");
-        printer.error("Check %s for errors (correct paths, directories and commands)."%(cfgfile));
+        printer.error("Check {0} for errors (correct paths, directories and commands).".format((os.path.join(cfgfiles[0]))));
         printer.error("Perhaps you forgot to use --config (or -c)?");
         printer.error("");
         return False;
@@ -326,11 +326,9 @@ def read(argv):
         raise FatalException("Insufficient arguments, see -h");
     
     cp = RawConfigParser();
-    if not os.path.isfile(cfgfile):
-        raise FatalException("missing main configuration file - %s"%(cfgfile));
     
     # not using readfiles since doesn't work under windows
-    for cfg in [cfgfile, os.path.join(os.path.expanduser( "~" ), ".musync")]:
+    for cfg in map(lambda cfgfile: os.path.expanduser(os.path.join(*cfgfile)), cfgfiles):
         if not os.path.isfile(cfg):
             continue;
         cp.readfp(open(cfg));
@@ -433,16 +431,14 @@ def read(argv):
     #
 
     default_config = Settings["default-config"];
-
+    
     while configuration:
         Settings[ "default-config" ] = False;
         
         # Overlay configs
         for section in configuration.split(','):
             if section in anti_circle:
-                raise FatalException(
-                    "Configuration has circular references, take a good look at key 'default-config'"
-                );
+                raise FatalException("Configuration has circular references, take a good look at key 'default-config'");
             
             anti_circle.append( section );
             OverlaySettings( cp, section );

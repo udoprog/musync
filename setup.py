@@ -10,12 +10,7 @@ import os,sys
 #(relative to the 'root' dir, where setup.py is)
 #You could be more specific.
 files = ["README","INSTALL","COPYING","ChangeLog"]
-if os.name != "posix":
-  print("Your OS isn't officially supported - sorry")
-  sys.exit(1);
-else:
-  dfiles = [("/usr/share/musync",["cfg/posix/musync.conf","cfg/posix/musync.sed"])]
-  conf_decl = "cfgfile=\"/etc/musync.conf\"\n"
+dfiles = [("/usr/share/musync", ["cfg/posix/musync.conf","cfg/posix/musync.sed"] )]
 
 msg = """
 Examples in /usr/share/musync,
@@ -53,25 +48,8 @@ class install(command_install):
 
 class build_py(commands_build_py):
     """Specialized Python source builder."""
-
-        # implement whatever needs to be different...
-    def build_packages(self):
-        commands_build_py.build_packages(self);
-        global conf_decl
-
-        f = open("build/lib/musync/opts.py", "r");
-        print("changing opts.py to suite operating system...")
-        lines = f.readlines();
-        for x,line in enumerate(lines):
-            if line == "MUSYNC_CONF_DECL\n":
-                lines[x] = conf_decl;
-                print(str(x) + ":" + line[:-1] + " changed")
-        
-        f.close();
-        f = open("build/lib/musync/opts.py","w");
-        for l in lines:
-            f.write(l);
-        f.close();
+    #def build_packages(self):
+    #    commands_build_py.build_packages(self);
 
 setup(
     name = "musync",
