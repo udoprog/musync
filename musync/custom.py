@@ -1,10 +1,11 @@
 import subprocess as sp
+import hashlib
 
 def system(*args, **kw):
     """
     spawn a command and return value as boolean.
     """
-    return sp.Popen(args, **kw).wait();
+    return sp.Popen(args, **kw).wait() == 0;
 
 def execute(*args, **kw):
     """
@@ -47,3 +48,36 @@ def filter(data, *args, **kw):
         return data;
     
     return "";
+
+def md5sum(target):
+    f = open(target, "r")
+    
+    m = hashlib.md5();
+    
+    while True:
+        s = f.read(2**14)
+        
+        if not s:
+            return m.digest();
+        
+        m.update(s);
+
+def escapeunicode(text):
+    """
+    Do not allow _any_ unicode characters to pass by here.
+    """
+    if type(text) != unicode:
+        d_text = str(text).decode("utf-8");
+    else:
+        d_text = text;
+    
+    buildstr = list();
+    
+    for c in d_text:
+        if ord(c) > 127:
+            buildstr.append("x{0}".format(ord(c)));
+        else:
+            buildstr.append(c);
+    
+    return "".join(buildstr).encode("ascii");
+

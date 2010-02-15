@@ -1,0 +1,3 @@
+[console_scripts]
+musync = musync:entrypoint
+

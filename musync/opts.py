@@ -35,9 +35,12 @@
 
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
+from musync import eval_env;
+
 import os;
 import getopt;
 import tempfile;
+import types;
 
 #operating system problems
 tmp=tempfile.gettempdir(); #general temp directory
@@ -255,16 +258,25 @@ def settings_sanity(pl):
                 printer.error("    current value: %s"%(Settings[key].replace("%", "%%")));
                 printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
                 err = True;
-                
     
     # these must exist as path
-    #for key in ["rm-with","add-with","filter-with"]:
-    #    if Settings[key] is None: # these should have been caught earlier.
-    #        continue;
-    #    if not os.path.isfile(Settings[key].split(' ')[0]):
-    #        printer.error("%s: could not find path - check configuration and modify key."%(key));
-    #        printer.error("    current value: %s"%(Settings[key]));
-    #        err=True;
+    for key in ["rm-with", "add-with", "filter-with", "hash-with"]:
+        if Settings[key] is None: # these should have been caught earlier.
+            continue;
+        
+        try:
+            cmd = eval(Settings[key], eval_env);
+        except Exception, e:
+            printer.error(key + ": " + str(e));
+            err = True;
+            continue;
+        
+        if type(cmd) != types.FunctionType:
+            printer.error(key + ": is not a function");
+            err = True;
+            continue;
+        
+        Settings[key] = cmd;
     
     if Settings["transcode"]:
         to=Settings["transcode"][1];
@@ -277,10 +289,19 @@ def settings_sanity(pl):
                 printer.error("transcode: %s=%s"%(fr, to));
                 err = True;
             else:
-                cmd = Settings[key].split(' ')[0];
-                if not os.path.isfile(cmd):
-                  printer.error("%s: %s"%(key, "command '%s' could not be located, maybe you have supplied an incorrect path?"%(cmd)))
-                  err=True;
+                try:
+                    cmd = eval(Settings[key], eval_env);
+                except Exception, e:
+                    printer.error(key + ": " + str(e));
+                    err = True;
+                    continue;
+                
+                if type(cmd) != types.FunctionType:
+                    printer.error(key + ": is not a function");
+                    err = True;
+                    continue;
+                
+                Settings[key] = cmd;
     
     if err:
         printer.error("");

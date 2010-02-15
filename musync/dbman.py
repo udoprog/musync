@@ -36,7 +36,7 @@
 #
 
 import os;
-import musync.subp;
+
 from musync.errors import WarningException, FatalException;
 from musync.opts import Settings;
 
@@ -70,12 +70,12 @@ def hash_compare(path1, path2):
     """
     compares two paths, uses hashing to see if they are equal.
     """
-    hash = musync.subp.hash_with(path1);
-    hash2 = musync.subp.hash_with(path2);
+    hash = Settings["hash-with"](path1);
+    hash2 = Settings["hash-with"](path2);
     return hash == hash2;
 
 def hash_get(path):
-    return musync.subp.hash_with(path);
+    return Settings["hash-with"](path);
 
 def add(pl, p, t):
     "adds a file to the database"
@@ -97,8 +97,8 @@ def add(pl, p, t):
     
     # by this time, we wan't it removed.
     if (t.exists() or t.islink()):
-        musync.subp.rm_with(t.path);
-
+        Settings["rm-with"](t.path);
+    
     attempts = 0;
     parity = None;
     while True:
@@ -111,15 +111,18 @@ def add(pl, p, t):
 
         if Settings["check-hash"]:
             parity = hash_get(p.path);
-
-        musync.subp.add_with(p.path, t.path);
+        
+        Settings["add-with"](p.path, t.path);
         
         # if settings prompt, check target file hash.
         if Settings["check-hash"]:
-            if hash_get(t.path) == parity:
-                printer.notice( "      check-hash successful :-)" );
+            check = hash_get(t.path);
+            
+            
+            if parity == check:
+                printer.notice(  "      check-hash successful :-) {0} equals {1}".format(repr(parity), repr(check)) )
             else:
-                printer.warning( "      check-hash failed, retrying :-(" );
+                printer.warning( "      check-hash failed :-/ {0} is not {1}".format(repr(parity), repr(check)) )
                 attempts += 1;
                 continue;
         break;
@@ -131,7 +134,7 @@ def remove (p, t):
     if t.path == p.path and not Settings["force"]:
         raise WarningException("target is same as source  (use --force if you really wan't to do this)");
    
-    musync.subp.rm_with(t.path);
+    Settings["rm-with"](t.path);
     return True;
 
 import musync.meta;
@@ -150,7 +153,7 @@ def fix_file(pl, p, t):
         add(pl, p, t);
     
     printer.action("removing insane file - %s"%(p.relativepath()));
-    musync.subp.rm_with(p.path);
+    Settings["rm-with"](p.path);
 
 def fix_dir(pl, p):
     printer, logger = pl;
@@ -176,9 +179,10 @@ def transcode(p, t):
     
     if (t.exists() or t.islink()) and not Settings["force"]:
         raise WarningException("file already exists: %s"%(t.relativepath()));
-
+    
     if not Settings["pretend"]:
-        musync.subp.transcode_with(Settings["%s-to-%s"%(t_from, t_to)], p.path, tmp_file);
+        Settings["%s-to-%s"%(t_from, t_to)](p.path, tmp_file);
+    
     # temp-file is the new source.
     p = musync.commons.Path(tmp_file);
     return (p, t);

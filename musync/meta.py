@@ -35,9 +35,8 @@ from mutagen.flac import FLAC;
 from musync.errors import WarningException
 from musync.errors import FatalException;
 from musync.opts import Settings;
-from musync.subp import sanitize_with_filter;
-from mutagen import File;
 
+from mutagen import File;
 #emergency stuff
 from mutagen.id3 import TXXX;
 from mutagen.id3 import TDOR;
@@ -288,10 +287,9 @@ def cleanmeta(meta):
         meta["year"] = 0;
     
     # no plan for this section yet, keep along...
-    #sanitize all strings
+    # sanitize all strings
     for key in ["artist","album","title"]:
-        meta[key] = sanitize_with_filter(meta[key], key);
-        # FIXME: clean meta
-        #meta[key] = "cleaned!";
+        meta[key] = Settings["filter-with"](key, meta[key]);
+    
     return meta;
 

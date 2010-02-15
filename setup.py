@@ -1,81 +1,28 @@
-#!/usr/bin/env python
+from setuptools import setup, find_packages
+import sys, os
 
-from distutils.command.build_py import build_py as commands_build_py
-from distutils.command.install import install as command_install
-from distutils.core import setup
+version = '0.5'
 
-import os,sys
-
-#This is a list of files to install, and where
-#(relative to the 'root' dir, where setup.py is)
-#You could be more specific.
-files = ["README","INSTALL","COPYING","ChangeLog"]
-dfiles = [("/usr/share/musync", ["cfg/posix/musync.conf","cfg/posix/musync.sed"] )]
-
-msg = """
-Examples in /usr/share/musync,
-copy these to /etc for almost-out-of-the-box functionality.
-
-READ /etc/musync.conf
-NOTE: due to some difficulties with setup.py your files in /usr/share/musync _might_ not have read permissions for everyone, fix this when copying.
-
-Cheers,
-Musync Devs
-"""
-
-class install(command_install):
-    def run(self):
-        ### CHECK DEPS ###
-        print("checking module dependancies")
-        try:
-            import mutagen
-            if mutagen.version[0] != 1 or mutagen.version[1] < 12:
-                print("  mutagen - requires version >=1.12!")
-                return;
-            else:
-                print("  mutagen - version %d.%d OK"%(mutagen.version[0], mutagen.version[1]))
-                
-        except ImportError, e:
-            print("  mutagen - does not exist!")
-            print("    musync requires mutagen to work, please get it from")
-            print("    your favorite packet mangler or visit         ")
-            print("    http://www.sacredchao.net/quodlibet/wiki/Download")
-            return;
-            
-        command_install.run(self);
-        
-        print(msg)
-
-class build_py(commands_build_py):
-    """Specialized Python source builder."""
-    #def build_packages(self):
-    #    commands_build_py.build_packages(self);
-
-setup(
-    name = "musync",
-    version = "0.4.0_rc4",
-    description = "Musync is a simple and usable music organizer which uses metadata to sort the music into libraries.",
-    author = "John-John Tedro, Albin Stjerna, Oscar Eriksson",
-    author_email = "johnjohn.tedro@gmail.com, albin.stjerna@gmail.com, oscar.eriks@gmail.com",
-    url = "http://sf.net/projects",
-    #Name the folder where your packages live:
-    #(If you have other packages (dirs) or modules (py files) then
-    #put them into the package directory - they will be found 
-    #recursively.)
-    packages = ['musync'],
-    #'package' package must contain files (see list above)
-    #I called the package 'package' thus cleverly confusing the whole issue...
-    #This dict maps the package name =to=> directories
-    #It says, package *needs* these files.
-    package_data = {'musync' : files },
-    #'runner' is in the root.
-    scripts = ["scripts/musync"],
-    long_description = """
-    see http://sf.net/projects/musync
-    """,
-    #
-    #This next part it for the Cheese Shop, look a little down the page.
-    #classifiers = []     
-    data_files = dfiles,
-    cmdclass = {'build_py': build_py,'install': install}
-) 
+setup(name='Musync',
+      version=version,
+      description="Music Synchronizer",
+      long_description="""\
+""",
+      classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+      keywords='music',
+      author='John-John Tedro',
+      author_email='johnjohn.tedro@gmail.com',
+      url='musync.sf.net',
+      license='GPLv3',
+      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      include_package_data=True,
+      zip_safe=True,
+      install_requires=[
+          "mutagen>=1.12",
+      ],
+      entry_points={
+          'console_scripts': [
+              'musync = musync:entrypoint',
+          ],
+      }
+      )

@@ -182,8 +182,7 @@ def op_fix(pl, p):
             musync.meta.openaudio(p);
         except Exception, e:
             printer.action("removing (%s): %s"%(p.path, str(e)));
-            import musync.subp as sp;
-            sp.rm_with(p.path);
+            Settings["rm-with"](p.path);
             return;
 	
     t = None;
