@@ -35,7 +35,6 @@
 
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
-import printer;
 import os;
 import getopt;
 import tempfile;
@@ -128,13 +127,15 @@ Settings = {
     "debug":            None,
 };
 
-def settings_premanip():
+def settings_premanip(pl):
     """
     Pre manipulation of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
-
+    
+    printer, logger = pl;
+    
     # encoding everything as strings.
     for k in Settings.keys():
       if isinstance(Settings[k], unicode):
@@ -165,17 +166,20 @@ def settings_premanip():
             raise FatalException("Modify key '%s' invalid"%( key ));
         else:
             Settings["modify"][key] = modification;
-            #printer.notice("using: %s=\"%s\""%( key, modification ));
+            printer.notice("using: %s=\"%s\""%( key, modification ));
 
     return True;
     
 
-def settings_postmanip():
+def settings_postmanip(pl):
     """
     postmanipulation of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
+
+    printer, logger = pl;
+    
     Settings["root"] = os.path.abspath(os.path.expanduser(Settings["root"]));
     import musync.locker; # needed for settings global variables
     musync.locker.root = Settings["root"];
@@ -205,12 +209,15 @@ def settings_postmanip():
 ###
 # will try to display all noticed errors in configuration
 # then return False which will stop the program from further execution.
-def settings_sanity():
+def settings_sanity(pl):
     """
     Sanity check of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
+    
+    printer, logger = pl;
+    
     # try to pass a valid format string
     err=False;
     try:
@@ -251,14 +258,14 @@ def settings_sanity():
                 
     
     # these must exist as path
-    for key in ["rm-with","add-with","filter-with"]:
-        if Settings[key] is None: # these should have been caught earlier.
-            continue;
-        if not os.path.isfile(Settings[key].split(' ')[0]):
-            printer.error("%s: could not find path - check configuration and modify key."%(key));
-            printer.error("    current value: %s"%(Settings[key]));
-            err=True;
-
+    #for key in ["rm-with","add-with","filter-with"]:
+    #    if Settings[key] is None: # these should have been caught earlier.
+    #        continue;
+    #    if not os.path.isfile(Settings[key].split(' ')[0]):
+    #        printer.error("%s: could not find path - check configuration and modify key."%(key));
+    #        printer.error("    current value: %s"%(Settings[key]));
+    #        err=True;
+    
     if Settings["transcode"]:
         to=Settings["transcode"][1];
         for fr in Settings["transcode"][0]:
@@ -320,7 +327,9 @@ def OverlaySettings( parser, sect ):
         raise FatalException("missing configuration key - %s"%( sect ));
 
 # return None for stopping of execution
-def read(argv):
+def read(argv, pl):
+    printer, logger = pl;
+    
     # Check argument sanity.
     if len(argv) < 1:
         raise FatalException("Insufficient arguments, see -h");
@@ -422,7 +431,7 @@ def read(argv):
     # no config specified, use default.
     if not configuration:
         configuration = Settings["default-config"];
-        #printer.notice("[using 'default-config' since --config not found]");
+        printer.notice("[using 'default-config' since --config not found]");
     
     #To avoid curcular references.
     anti_circle = [];
@@ -447,7 +456,7 @@ def read(argv):
     
     config_fatal = True;
     
-    if settings_premanip() and settings_sanity() and settings_postmanip():
+    if settings_premanip(pl) and settings_sanity(pl) and settings_postmanip(pl):
         config_fatal = False;
    
     Settings["default-config"] = default_config;

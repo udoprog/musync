@@ -42,6 +42,14 @@ class TermCaps:
     _acolors=["black","red","green","yellow","blue","magenta","cyan","white"];
     _capabilites=["bold","rev","smul","cuf1","clear","sgr0","el","ed","cuu1","cr"];
     
+    # Current artist and album in focus
+    focused = {
+        "artist": None,
+        "album": None,
+        "track": None,
+        "title": None
+    };
+    
     def __init__(self, stream):
         self.haslogged = False;
         self.tc = True;
@@ -177,6 +185,21 @@ class TermCaps:
             return;
         
         self._write("[-] {magenta}{msg}{sgr0}\n", msg=text);
+    
+    def focus(self, cmeta):
+        """
+        Set database focus on specific file and display some informative data.
+        """
+        if self.focused["artist"] != cmeta["artist"]:
+            self.focused["artist"] = cmeta["artist"];
+            self.boldnotice( " > {0}".format(self.focused["artist"]) );
+        
+        if self.focused["album"] != cmeta["album"]:
+            self.focused["album"] = cmeta["album"];
+            self.boldnotice( " > > {0}/{1}".format( self.focused["artist"], self.focused["album"] ) );
+        
+        self.focused["title"] = cmeta["title"];
+        self.focused["track"] = cmeta["track"];
 
 def isSuppressed(type):
     "Checkes weither message type currently is suppressed trough configuration."
@@ -184,29 +207,3 @@ def isSuppressed(type):
         return True;
     
     return False;
-
-# Current artist and album in focus
-focused = {
-    "artist": None,
-    "album": None,
-    "track": None,
-    "title": None
-};
-    
-def focus(printer, cmeta):
-    """
-    Set database focus on specific file and display some informative data.
-    """
-    global focused;
-    
-    if focused["artist"] != cmeta["artist"]:
-        focused["artist"] = cmeta["artist"];
-        printer.boldnotice( " > {0}".format(focused["artist"]) );
-    
-    if focused["album"] != cmeta["album"]:
-        focused["album"] = cmeta["album"];
-        printer.boldnotice( " > > {0}/{1}".format( focused["artist"], focused["album"] ) );
-    
-    focused["title"] = cmeta["title"];
-    focused["track"] = cmeta["track"];
-

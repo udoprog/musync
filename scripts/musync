@@ -367,7 +367,7 @@ if __name__ == "__main__":
     args = None; 
    
     try:
-        args = musync.opts.read(sys.argv[1:]);
+        args = musync.opts.read(sys.argv[1:], (printer, None));
         logger = None;
         
         try:

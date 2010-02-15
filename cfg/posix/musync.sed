@@ -14,39 +14,98 @@
 # Note that the order of the bytes has been swapped to allow better overview here.
 #
 
-# ae and such
-s_\x00(\xC0|\xC1|\xC2|\xC3|\xC4|\xC5|\xC6)_\x00A_g
-s_\x00(\xE0|\xE1|\xE2|\xE3|\xE4|\xE5|\xE6)_\x00a_g
-# oe
-s_\x00(\xD2|\xD3|\xD4|\xD5|\xD6)_\x00O_g
-s_\x00(\xF2|\xF3|\xF4|\xF5|\xF6)_\x00o_g
-#e
-s_\x00(\xC8|\xC9|\xCA|\xCB)_\x00E_g
-s_\x00(\xE8|\xE9|\xEA|\xEB)_\x00e_g
-#u
-s_\x00(\xD9|\xDA|\xDB|\xDC)_\x00U_g
-s_\x00(\xF9|\xFA|\xFB|\xFC)_\x00u_g
+s_[ÀÁÂÃÄÅÅÄĀĂĄ]_A_g
+s_Æ_AE_g
+s_æ_ae_g
+
+s_̈́[åäāăą]_a_g
+
+s_[ÇĆĈĊČ]_C_g
+s_[ćĉċč]_c_g
+
+s_[ĎĐ]_D_g
+s_[ďđ]_d_g
+
+s_[ÈÉÊËĒĔĖĘĚ]_E_g
+s_[èéêëēĕėęě]_e_g
+
+s_[ĜĞĠĢ]_g_g
+s_[ĝğġģ]_g_g
+
+s_[ĤĦ]_h_g
+s_[ĥħ]_h_g
+
+s_[ĨĪĬĮİÌÍÎÏ]_I_g
+s_[ĩīĭįıìíîï]_i_
+
+s_Ĳ_IJ_g
+s_ĳ_ij_g
+
+s_Ĵ_J_g
+s_ĵ_j_g
+
+s_[Ķĸ]_K_g
+s_[ķ]_k_g
+
+s_[ĹĻĽĿŁ]_L_g
+s_[ĺļľŀł]_l_g
+
+s_[ŃŅŇŊ]_N_g
+s_[ńņňŉŋ]_n_g
+
+s_[ŌŎŐÒÓÔÕÖØ]_O_g
+s_[ōŏőòóôõöø]_o_g
+
+s_Œ_CE_g
+s_œ_oe_g
+
+s_[ŔŖŘ]_R_g
+s_[ŕŗř]_r_g
+
+s_[ŚŜŞŠ]_S_g
+s_[śŝşš]_s_g
+
+s_[ŢŤŦ]_T_g
+s_[ţťŧ]_t_g
+
+s_[ŨŪŬŮŰŲÙÚÛÜ]_U_g
+s_[ũūŭůűųùúûü]_u_g
+
+s_[Ŵ]_W_g
+s_[ŵ]_w_g
+
+s_[ŶŸÝ]_Y_g
+s_[ŷÿý]_y_g
+
+s_[ŹŻŽ]_Z_g
+s_[źżž]_z_g
+
+s_ſ_f_g
+
 #whitespacespace to underscore
-s_\x00(\x20|\xA0)_\x00\__g
-# 
+# first character is a nobr-space
+s/[  \t\n]/_/g
 
-# cross
-s_(\x00\x86|\x20\x20)_\x00c\x00r\x00o\x00s\x00s_g
-# ^2
-s_\x00\xB2_\x002_g
-#replace with nothing
-s_\x00('|"|`|,|:|;|\(|\)|\[|\]|\+|\?|\*|~|\!)__g
-# and
-s_\x00&_\x00n_g
+s_[✝†]_cross_g
+s_™_tm_g
+s_©_c_g
+s_®_r_g
+s_«_<<_g
+s_»_>>_g
+s_¹_1_g
+s_²_2_g
+s_³_3_g
+s_&_n_g
 #string to lowercase
-s_\x00([A-Z])_\x00\l\1_g
+s_([A-Z])_\l\1_g
 # / with -
-s_\x00\/_\x00-_g
+s_\/_\-_g
 # remove multiple underscores
-s/(\x00\_)+/\x00\_/g
+s/_+/_/g
 # remove multiple dots
-s/(\x00\.)+//g
+s/\.+//g
+#replace with nothing
+s_(%|'|"|`|,|:|;|\(|\)|\[|\]|\+|\?|\*|~|\!)__g
 #Remove 'whitespace' in the beginning and in the end
-s/(\x00_)*$//
-s/^(\x00_)*//
-
+s/_+$//
+s/^_+//
