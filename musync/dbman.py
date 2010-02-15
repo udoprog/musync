@@ -40,8 +40,6 @@ import musync.subp;
 from musync.errors import WarningException, FatalException;
 from musync.opts import Settings;
 
-import musync.printer as Printer;
-
 import musync.commons;
 # Current artist and album in focus
 
@@ -79,8 +77,11 @@ def hash_compare(path1, path2):
 def hash_get(path):
     return musync.subp.hash_with(path);
 
-def add(p, t):
+def add(pl, p, t):
     "adds a file to the database"
+
+    printer, logger = pl;
+    
     if not t.parent().isdir():
         # recursively makes directories.
         try:
@@ -106,8 +107,7 @@ def add(p, t):
         
         if attempts > 0:
             if not p.exists():
-                Printer.warning("source file does no longer exist.");
-                raise FatalException("cannot perform add operation.");
+                raise FatalException("cannot perform add operation, source file does no longer exist!");
 
         if Settings["check-hash"]:
             parity = hash_get(p.path);
@@ -117,9 +117,9 @@ def add(p, t):
         # if settings prompt, check target file hash.
         if Settings["check-hash"]:
             if hash_get(t.path) == parity:
-                Printer.notice( "      check-hash successful :-)" );
+                printer.notice( "      check-hash successful :-)" );
             else:
-                Printer.warning( "      check-hash failed, retrying :-(" );
+                printer.warning( "      check-hash failed, retrying :-(" );
                 attempts += 1;
                 continue;
         break;
@@ -136,26 +136,30 @@ def remove (p, t):
 
 import musync.meta;
 
-def fix_file(p, t):
+def fix_file(pl, p, t):
     # this mean we are in the correct place...
+    printer, logger = pl;
+    
     if t.path == p.path:
-        Printer.notice("sane - %s"%(t.relativepath()));
+        printer.notice("sane - %s"%(t.relativepath()));
         return; # this is sane.
 
     if not t.isfile() and not t.islink():
-        Printer.action("adding insane file - %s"%(p.relativepath()));
-        Printer.action("                as - %s"%(t.relativepath()));
-        add(p, t);
-
-    Printer.action("removing insane file - %s"%(p.relativepath()));
+        printer.action("adding insane file - %s"%(p.relativepath()));
+        printer.action("                as - %s"%(t.relativepath()));
+        add(pl, p, t);
+    
+    printer.action("removing insane file - %s"%(p.relativepath()));
     musync.subp.rm_with(p.path);
 
-def fix_dir(p):
+def fix_dir(pl, p):
+    printer, logger = pl;
+    
     if not p.isempty():
-        Printer.notice("sane - %s"%(p.relativepath()));
+        printer.notice("sane - %s"%(p.relativepath()));
         return;
     
-    Printer.action("removing empty dir - %s"%(p.relativepath()));
+    printer.action("removing empty dir - %s"%(p.relativepath()));
     p.rmdir();
 
 #transcoding

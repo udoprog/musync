@@ -23,7 +23,6 @@
 #
 
 from musync.errors import FatalException, WarningException;
-import musync.printer as Printer;
 from musync.opts import Settings;
 import musync.opts;
 import musync.commons;
@@ -38,44 +37,47 @@ handled_files = 0;
 
 import cStringIO;
 
-def operate(args, call, inroot=False):
+def operate(printer, logger, args, call, inroot=False):
     """
     Operation abstraction, this is the only function used by different operations.
     """
-    if Settings["progress"]: ## run with progress.
-        list=[];
-        for p in readargs(args, inroot):
-            list.append(p);
-       
-        Printer.stdout_log();
-        l=len(list);
-        Printer.write("\n", stream=sys.stdout);
-        for i,p in enumerate(list):
-            if musync.sign.Interrupt is True:
-                Printer.stdout_normal();
-                musync.sign.setret(musync.sign.INTERRUPT);
-                raise FatalException("Caught Interrupt");
-            try:
-                if i + 1 == l:
-                    d=100;
-                else:
-                    d=int((i*100)/l);
-                r=100-d;
-                Printer.write("%(cr)s%(cuu1)s%(el)s[" + "="*d + " "*r + "] " + str(d) + "%%\n", stream=sys.stdout);
-                call(p);
-            except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
-                pass;
-        Printer.stdout_normal();
-    
-    else:
-        for p in readargs(args, inroot):
-            if musync.sign.Interrupt is True:
-                musync.sign.setret(musync.sign.INTERRUPT);
-                raise FatalException("Caught Interrupt");
-            try:
-                call(p);
-            except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
-                Printer.warning( str( e ) );
+    for p in readargs(args, inroot):
+        if musync.sign.Interrupt is True:
+            musync.sign.setret(musync.sign.INTERRUPT);
+            raise FatalException("Caught Interrupt");
+        
+        try:
+            call( (printer, logger), p );
+        except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
+            printer.warning( str(e) );
+#    if Settings["progress"]: ## run with progress.
+#        list=[];
+#        for p in readargs(args, inroot):
+#            list.append(p);
+#       
+#        printer.stdout_log();
+#        
+#        l=len(list);
+#        printer.write("\n", stream=sys.stdout);
+#        for i,p in enumerate(list):
+#            if musync.sign.Interrupt is True:
+#                printer.stdout_normal();
+#                musync.sign.setret(musync.sign.INTERRUPT);
+#                raise FatalException("Caught Interrupt");
+#            try:
+#                if i + 1 == l:
+#                    d=100;
+#                else:
+#                    d=int((i*100)/l);
+#                r=100-d;
+#                printer.write("%(cr)s%(cuu1)s%(el)s[" + "="*d + " "*r + "] " + str(d) + "%%\n", stream=sys.stdout);
+#                call(p);
+#            except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
+#                pass;
+#        
+#        printer.stdout_normal();
+#    
+#    else:
 
 def readargs(args, inroot):
     """

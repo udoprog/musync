@@ -28,14 +28,8 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-haslogged = None;
-f_log = None;
-f_fixlog = None;
-needfixes = None;
-Settings = None;
-termcap=None;
-
 import sys, os, codecs;
+
 from musync.opts import Settings;
 from musync.errors import FatalException;
 
@@ -43,40 +37,45 @@ class TermCaps:
     """
     checks for termcaps and simplifies colored terminal interface.
     """
-    stdout=None;
-    caps=None;
-    setf=None;
-    colors={};
-    bcolors={};
-    tc=True;
-
+    
     _colors=["black","blue","green","cyan","red","magenta","yellow","white"];
     _acolors=["black","red","green","yellow","blue","magenta","cyan","white"];
     _capabilites=["bold","rev","smul","cuf1","clear","sgr0","el","ed","cuu1","cr"];
-
-    def __init__(self, stdout=sys.stdout):
-        self.stdout=stdout;
+    
+    def __init__(self, stream):
+        self.haslogged = False;
+        self.tc = True;
+        self.stream=stream;
+        
+        self.caps=None;
+        self.setf=None;
+        self.colors={};
+        self.bcolors={};
         
         self.blankcaps();
-
-        try:
-            if not stdout.isatty():
-                raise;
-
-            import curses
-            curses.setupterm();
-        except:
-            # if caps for some reason are not possible. Set them to blanks.
+        
+        if not self.stream.isatty():
             self.blankcaps();
+            self.tc = False;
+            return
+        
+        try:
+            import curses
+            curses.setupterm(os.environ.get("TERM", "xterm"), self.stream.fileno());
+        except Exception, e:
+            # if caps for some reason are not possible. Set them to blanks.
+            self.warning("Cannot get capabilities: " + str(e));
+            self.tc = False;
             return;
         
         for cap in self._capabilites:
             self.colors[cap]=curses.tigetstr(cap);
             if not self.colors[cap]:
                 self.colors[cap]="";
-
+        
         self.setf=curses.tigetstr("setf");
         self.setaf=curses.tigetstr("setaf");
+        
         if self.setf:
             for num, color in enumerate(self._colors):
                 self.colors[color]=curses.tparm(self.setf, num);
@@ -97,140 +96,93 @@ class TermCaps:
         for x in self._colors:
             self.bcolors[x]="";
             self.colors[x]="";
-
-    def setstdout(stream):
+    
+    def setstream(stream):
         """
         Change standard stream.
         """
-        self.stdout=stream;
-
-    def write(self, str, stream=None, tc=None):
+        self.stream=stream;
+    
+    def _write(self, fmt, **kw):
         """
         Write something to a stream using termcaps.
         """
+        
+        tc = kw.pop("tc", None);
+        stream = kw.pop("stream", None);
+        
+        self.haslogged = True;
+        
         if tc is None:
             tc = self.tc;
-
+        
         if stream is None:
-            stream=self.stdout;
-
+            stream=self.stream;
+        
         if tc:
-            stream.write(str%self.colors);
+            kw.update(self.colors);
         else:
-            stream.write(str%self.bcolors);
+            kw.update(self.bcolors);
+        
+        stream.write(fmt%kw);
+  
+    def warning(self, text):
+        """
+        Issues a warning to the user.
+        Warnings are meant to happen when something screws up but the program can still complete execution.
+        """
+        if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
+            return;
 
-def stdout_log():
-    global f_log, haslogged;
-    termcap.stdout=f_log;
-    termcap.tc=False;
-    termcap.write("===Progress Output===\n");
-    haslogged=True;
+        self._write("[!] %(red)s%(msg)s%(sgr0)s\n", msg=text);
 
-def stdout_normal():
-    termcap.stdout=sys.stdout;
-    termcap.tc=True;
+    def error(self, text):
+        """
+        Issues an error to the user.
+        Errors should be foolowed by the stopped execution by the program.
+        """
+        if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
+            return;
+        
+        self._write("%(bold)s[exc] %(red)s%(msg)s%(sgr0)s\n", msg=text);
 
-def init():
-    # hacked the termcap here.
-    global termcap;
-    termcap=TermCaps();
-    # logfiles.
+    def notice(self, text):
+        """
+        Issues an notice to the user.
+        Notices are to be used sparsely, only to give information to the user that can be necessary.
+        """
+        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+            return;
+        
+        self._write("[:] %(green)s%(msg)s%(sgr0)s\n", msg=text);
 
-def openlogs():
-    global f_log, haslogged, f_fixlog, needfixes;
-    try:
-        f_log = open( Settings["log"], "w" );
-        f_fixlog = codecs.open( Settings["fix-log"], "w", "utf-8" );
-    except Exception,e:
-        raise FatalException(str(e));
-    haslogged = False;
-    needfixes = False;
+    def blanknotice(self, text):
+        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+            return;
+        
+        self._write("    %(green)s%(msg)s%(sgr0)s\n", msg=text);
 
-# FIXME i don't wan't to be camelcased!
-def closelogs():
-    "Close logs"
-    global f_log, f_fixlog;
-    
-    if f_log != None:
-        f_log.close();
-    if f_fixlog != None:
-        f_fixlog.close();
+    def boldnotice(self, text):
+        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+            return;
+        
+        self._write("%(bold)s[:] %(green)s%(msg)s%(sgr0)s\n", msg=text);
 
-def log(text):
-    global haslogged;
-    "append message to normal log-file"
-    haslogged = True;
-    f_log.write(text);
-
-def fixlog(path, meta):
-    global needfixes;
-    "manages fixlog, files that musync cannot handle but should be able (like bad metadata) is appended here"
-    # Check first that the file exists
-    f_fixlog.write(path + "\n" );
-    for key in ["album","artist","title","track"]:
-        if meta[key] is None:
-            meta[key] = "None";
-        f_fixlog.write("%s: %s"%(key, meta[key].encode("utf-8")));
-        f_fixlog.write( '\n' );
-
-    needfixes = True;
-
-def write(text, stream=None, tc=True):
-    termcap.write(text, stream, tc);
-
-def warning(text):
-    """
-    Issues a warning to the user.
-    Warnings are meant to happen when something screws up but the program can still complete execution.
-    """
-    if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
-        return;
-
-    termcap.write("[!] %(red)s" + text + "%(sgr0)s\n");
-
-def error(text):
-    """
-    Issues an error to the user.
-    Errors should be foolowed by the stopped execution by the program.
-    """
-    if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
-        return;
-
-    termcap.write("%(bold)s[exc] %(red)s" + text + "%(sgr0)s\n");
-
-def notice(text):
-    """
-    Issues an notice to the user.
-    Notices are to be used sparsely, only to give information to the user that can be necessary.
-    """
-    if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
-        return;
-
-    termcap.write("[:] %(green)s" + text + "%(sgr0)s\n");
-
-def blanknotice(text):
-    if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
-        return;
-
-    termcap.write("    %(green)s" + text + "%(sgr0)s\n");
-
-def boldnotice(text):
-    notice("%(bold)s" + text);
-
-def action(text):
-    """
-    Issues an notice to the user.
-    Notices are to be used sparsely, only to give information to the user that can be necessary.
-    """
-    if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
-        return;
-
-    termcap.write("[-] %(magenta)s" + text + "%(sgr0)s\n");
+    def action(self, text):
+        """
+        Issues an notice to the user.
+        Notices are to be used sparsely, only to give information to the user that can be necessary.
+        """
+        if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
+            return;
+        
+        self._write("[-] %(magenta)s%(msg)s%(sgr0)s\n", msg=text);
 
 def isSuppressed(type):
     "Checkes weither message type currently is suppressed trough configuration."
-    if type in Settings["suppressed"].split(','):
+    if type.lower() in map(lambda s: s.strip().lower(), Settings["suppressed"].split(',')):
         return True;
+    
     return False;
 
 # Current artist and album in focus
@@ -241,7 +193,7 @@ focused = {
     "title": None
 };
     
-def focus(cmeta):
+def focus(printer, cmeta):
     """
     Set database focus on specific file and display some informative data.
     """
@@ -249,11 +201,11 @@ def focus(cmeta):
     
     if focused["artist"] != cmeta["artist"]:
         focused["artist"] = cmeta["artist"];
-        boldnotice( " > %s"%( focused["artist"] ) );
+        printer.boldnotice( " > %s"%( focused["artist"] ) );
     
     if focused["album"] != cmeta["album"]:
         focused["album"] = cmeta["album"];
-        boldnotice( " > > %s/%s"%( focused["artist"], focused["album"] ) );
+        printer.boldnotice( " > > %s/%s"%( focused["artist"], focused["album"] ) );
     
     focused["title"] = cmeta["title"];
     focused["track"] = cmeta["track"];

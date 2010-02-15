@@ -21,7 +21,6 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 
 #imports
-import musync.printer as Printer;
 import traceback;
 
 #partials
@@ -249,9 +248,8 @@ def readmeta(p):
             if Settings["no-fixme"]:
                 meta[field] = unicode("");
             else:
-                Printer.fixlog(p.path, meta);
                 raise WarningException("fixme - %s"%(p.path));
-
+    
     return meta;
 
 def cleanmeta(meta):
