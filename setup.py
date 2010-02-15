@@ -11,7 +11,7 @@ import os,sys
 #You could be more specific.
 files = ["README","INSTALL","COPYING","ChangeLog"]
 if os.name != "posix":
-  print "Your OS isn't officially supported - sorry"
+  print("Your OS isn't officially supported - sorry")
   sys.exit(1);
 else:
   dfiles = [("/usr/share/musync",["cfg/posix/musync.conf","cfg/posix/musync.sed"])]
@@ -31,25 +31,25 @@ Musync Devs
 class install(command_install):
     def run(self):
         ### CHECK DEPS ###
-        print "checking module dependancies"
+        print("checking module dependancies")
         try:
             import mutagen
             if mutagen.version[0] != 1 or mutagen.version[1] < 12:
-                print "  mutagen - requires version >=1.12!"
+                print("  mutagen - requires version >=1.12!")
                 return;
             else:
-                print "  mutagen - version %d.%d OK"%(mutagen.version[0], mutagen.version[1])
+                print("  mutagen - version %d.%d OK"%(mutagen.version[0], mutagen.version[1]))
                 
-        except ImportError,e:
-            print "  mutagen - does not exist!"
-            print "    musync requires mutagen to work, please get it from"
-            print "    your favorite packet mangler or visit         "
-            print "    http://www.sacredchao.net/quodlibet/wiki/Download"
+        except ImportError, e:
+            print("  mutagen - does not exist!")
+            print("    musync requires mutagen to work, please get it from")
+            print("    your favorite packet mangler or visit         ")
+            print("    http://www.sacredchao.net/quodlibet/wiki/Download")
             return;
             
         command_install.run(self);
         
-        print msg
+        print(msg)
 
 class build_py(commands_build_py):
     """Specialized Python source builder."""
@@ -60,12 +60,12 @@ class build_py(commands_build_py):
         global conf_decl
 
         f = open("build/lib/musync/opts.py", "r");
-        print "changing opts.py to suite operating system..."
+        print("changing opts.py to suite operating system...")
         lines = f.readlines();
         for x,line in enumerate(lines):
             if line == "MUSYNC_CONF_DECL\n":
                 lines[x] = conf_decl;
-                print str(x) + ":" + line[:-1] + " changed"
+                print(str(x) + ":" + line[:-1] + " changed")
         
         f.close();
         f = open("build/lib/musync/opts.py","w");

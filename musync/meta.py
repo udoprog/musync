@@ -235,7 +235,7 @@ def readmeta(p):
         # try to read from file.
         try:
             meta[to_key] = audio[from_key][0];
-        except Exception,e:
+        except Exception, e:
             raise FatalException("metadata corrupt - %s"%(p.path));
 
     # apply modifications
@@ -267,7 +267,7 @@ def cleanmeta(meta):
             );
         else:
             meta["track"] = int(track);
-    except Exception,e:
+    except Exception, e:
         raise FatalException("cannot use tracknumber");
     
     nomatch = True;

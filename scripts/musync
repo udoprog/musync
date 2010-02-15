@@ -386,7 +386,7 @@ if __name__ == "__main__":
         print traceback.format_exc();
         printer.error("Something went very wrong, please report this error at %s"%(musync.opts.REPORT_ADDRESS));
         sys.exit(1);
-    except SystemExit,e: # interrupts and such
+    except SystemExit, e: # interrupts and such
         sys.exit(e);
     
     if Settings["verbose"] and args is not None:

@@ -51,7 +51,7 @@ def operate(pl, args, call, inroot=False):
         
         try:
             call(pl, p);
-        except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
+        except WarningException, e: # WarningExceptions are just pritned, then move of to next file.
             printer.warning( str(e) );
 #    if Settings["progress"]: ## run with progress.
 #        list=[];
@@ -75,7 +75,7 @@ def operate(pl, args, call, inroot=False):
 #                r=100-d;
 #                printer.write("%(cr)s%(cuu1)s%(el)s[" + "="*d + " "*r + "] " + str(d) + "%%\n", stream=sys.stdout);
 #                call(p);
-#            except WarningException,e: # WarningExceptions are just pritned, then move of to next file.
+#            except WarningException, e: # WarningExceptions are just pritned, then move of to next file.
 #                pass;
 #        
 #        printer.stdout_normal();

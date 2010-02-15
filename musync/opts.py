@@ -367,7 +367,7 @@ def read(argv):
                 "debug",
             ]
        );
-    except getopt.GetoptError,e:
+    except getopt.GetoptError, e:
         raise FatalException("Unrecognised option '%s', try -h or --help."%( e.opt ));
     
     #keep to set default-config or not

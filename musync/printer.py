@@ -124,7 +124,7 @@ class TermCaps:
         else:
             kw.update(self.bcolors);
         
-        stream.write(fmt%kw);
+        stream.write(fmt.format(**kw));
   
     def warning(self, text):
         """
@@ -134,7 +134,7 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
             return;
 
-        self._write("[!] %(red)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("[!] {red}{msg}{sgr0}\n", msg=text);
 
     def error(self, text):
         """
@@ -144,7 +144,7 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
             return;
         
-        self._write("%(bold)s[exc] %(red)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=text);
 
     def notice(self, text):
         """
@@ -154,19 +154,19 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("[:] %(green)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("[:] {green}{msg}{sgr0}\n", msg=text);
 
     def blanknotice(self, text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("    %(green)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("    {green}{msg}{sgr0}\n", msg=text);
 
     def boldnotice(self, text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("%(bold)s[:] %(green)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=text);
 
     def action(self, text):
         """
@@ -176,7 +176,7 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
             return;
         
-        self._write("[-] %(magenta)s%(msg)s%(sgr0)s\n", msg=text);
+        self._write("[-] {magenta}{msg}{sgr0}\n", msg=text);
 
 def isSuppressed(type):
     "Checkes weither message type currently is suppressed trough configuration."
@@ -201,11 +201,11 @@ def focus(printer, cmeta):
     
     if focused["artist"] != cmeta["artist"]:
         focused["artist"] = cmeta["artist"];
-        printer.boldnotice( " > %s"%( focused["artist"] ) );
+        printer.boldnotice( " > {0}".format(focused["artist"]) );
     
     if focused["album"] != cmeta["album"]:
         focused["album"] = cmeta["album"];
-        printer.boldnotice( " > > %s/%s"%( focused["artist"], focused["album"] ) );
+        printer.boldnotice( " > > {0}/{1}".format( focused["artist"], focused["album"] ) );
     
     focused["title"] = cmeta["title"];
     focused["track"] = cmeta["track"];
