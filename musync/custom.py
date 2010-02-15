@@ -75,7 +75,7 @@ def escapeunicode(text):
     
     for c in d_text:
         if ord(c) > 127:
-            buildstr.append("x{0}".format(ord(c)));
+            buildstr.append("U+{0}".format(hex(ord(c))[2:]));
         else:
             buildstr.append(c);
     
