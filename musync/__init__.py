@@ -180,12 +180,12 @@ def op_fix(pl, p):
         printer.warning("can only fix files in 'root'");
         return;
     
-    if musync.locker.islocked(t):
-        printer.warning("locked:", t.relativepath());
+    if musync.locker.islocked(p):
+        printer.warning("locked:", p.relativepath());
         return;
     
-    if musync.locker.parentislocked(t):
-        printer.warning("locked:", t.relativepath(), "(parent)");
+    if musync.locker.parentislocked(p):
+        printer.warning("locked:", p.relativepath(), "(parent)");
         return;
 
     if not p.exists():
