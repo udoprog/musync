@@ -62,7 +62,7 @@ def md5sum(target):
         
         m.update(s);
 
-def escapeunicode(text):
+def ue(text):
     """
     Do not allow _any_ unicode characters to pass by here.
     """
@@ -80,4 +80,3 @@ def escapeunicode(text):
             buildstr.append(c);
     
     return "".join(buildstr).encode("ascii");
-

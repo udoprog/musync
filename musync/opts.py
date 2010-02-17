@@ -33,17 +33,77 @@
 #    make sure it is added to help-text (if necessary).
 #    make sure cli-option is parsed.
 
-from ConfigParser import RawConfigParser;
-from musync.errors import FatalException;
-from musync import eval_env;
-
 import os;
+import shutil;
 import getopt;
 import tempfile;
 import types;
 
+from ConfigParser import RawConfigParser;
+from musync.errors import FatalException;
+
+import musync.custom;
+
 #operating system problems
 tmp=tempfile.gettempdir(); #general temp directory
+
+# Program behaviour is completely controlled trough this hashmap.
+# Try to read configuration, keep defaults if none found.
+Settings = {
+    #general
+    "root":             None,
+    "export":           False,
+    "pretend":          False,
+    "export":           False,
+    "default-config":   "",
+    #"filter-naming":    None,
+    "log":              os.path.join(tmp, "musync.log"),
+    "fix-log":          os.path.join(tmp, "musync-fixes.log"),
+    "add":              None,
+    "rm":               None,
+    "filter":           None,
+    "coloring":         False,
+    "hash":             None,
+    "check-hash":       False,
+    #naming
+    "dir":              None,
+    "format":           None,
+    #"supported-ext":    ".mp3,.ogg,.flac",
+    #options
+    "suppressed":       "notice,warning",
+    "silent":           False,
+    "verbose":          False,
+    "recursive":        False,
+    "force":            False,
+    "lock":             False,
+    "progress":         False,
+    "lock-file":        None,
+    "modify":           {
+                            "artist": None,
+                            "album":  None,
+                            "title":  None,
+                            "track":  None,
+                            "year":   None,
+                            "args":   []
+                        },
+    "transcode":        None,
+    "allow-similar":    None,
+    "no-fixme":         False,
+    "dateformat":       "\"%Y\"",
+    "debug":            None,
+};
+
+class SettingsObjectImpl:
+    pass;
+
+SettingsObject = SettingsObjectImpl();
+
+eval_env={
+  'os': os,
+  'shutil': shutil,
+  'm': musync.custom,
+  's': SettingsObject,
+};
 
 ### This is changed with setup.py to suite environment ###
 #cfgfile="d:\\dump\\programs\\musync_x86\\musync.conf"
@@ -83,52 +143,6 @@ def tmp_revert(key):
     
     Settings[key] = reverts[key];
     reverts[key] = None;
-
-# Program behaviour is completely controlled trough this hashmap.
-# Try to read configuration, keep defaults if none found.
-Settings = {
-    #general
-    "root":             None,
-    "export":           False,
-    "pretend":          False,
-    "export":           False,
-    "default-config":   "",
-    #"filter-naming":    None,
-    "log":              os.path.join(tmp, "musync.log"),
-    "fix-log":          os.path.join(tmp, "musync-fixes.log"),
-    "add-with":         None,
-    "rm-with":          None,
-    "filter-with":      None,
-    "coloring":         False,
-    "hash-with":        None,
-    "check-hash":       False,
-    #naming
-    "dir":              "%(artist)s/%(album)s",
-    "format":           "%(track)02d-%(title)s%(ext)s",
-    #"supported-ext":    ".mp3,.ogg,.flac",
-    #options
-    "suppressed":       "notice,warning",
-    "silent":           False,
-    "verbose":          False,
-    "recursive":        False,
-    "force":            False,
-    "lock":             False,
-    "progress":         False,
-    "lock-file":        None,
-    "modify":           {
-                            "artist": None,
-                            "album": None,
-                            "title": None,
-                            "track": None,
-                            "year": None,
-                            "args": []
-                        },
-    "transcode":        None,
-    "allow-similar":    None,
-    "no-fixme":         False,
-    "dateformat":       "\"%Y\"",
-    "debug":            None,
-};
 
 def settings_premanip(pl):
     """
@@ -234,7 +248,7 @@ def settings_sanity(pl):
     #    err=True;
 
     # none sanitycheck
-    for key in ["root","lock-file","add-with","rm-with","filter-with","hash-with"]:
+    for key in ["root","lock-file"]:
         if Settings[key] is None:
             printer.error("%s: must exist."%(key));
             printer.error("    current value: %s"%(Settings[key]));
@@ -259,27 +273,40 @@ def settings_sanity(pl):
                 printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
                 err = True;
     
-    # these must exist as path
-    for key in ["rm-with", "add-with", "filter-with", "hash-with"]:
-        if Settings[key] is None: # these should have been caught earlier.
+    for key in Settings:
+        val = Settings[key];
+        
+        if val is None: # these should have been caught earlier.
             continue;
         
-        try:
-            cmd = eval(Settings[key], eval_env);
-        except Exception, e:
-            printer.error(key + ": " + str(e));
+        if isinstance(val, basestring) and "-" not in key and val.startswith("lambda"):
+            try:
+                cmd = eval(val, eval_env);
+            except Exception, e:
+                printer.error(key + ": " + str(e));
+                err = True;
+                continue;
+            
+            if type(cmd) != types.FunctionType:
+                printer.error(key + ": is not a lambda function");
+                err = True;
+                continue;
+            
+            Settings[key] = cmd;
+            
+            ud = dict();
+            ud[key] = cmd;
+            SettingsObject.__dict__.update(ud);
+    
+    # check that a specific set of lambda functions exist
+    for key in ["add", "rm", "filter", "hash", "dir", "format"]:
+        if type(Settings[key]) != types.FunctionType:
+            printer.error(key + ": must be a lambda function");
             err = True;
-            continue;
-        
-        if type(cmd) != types.FunctionType:
-            printer.error(key + ": is not a function");
-            err = True;
-            continue;
-        
-        Settings[key] = cmd;
     
     if Settings["transcode"]:
         to=Settings["transcode"][1];
+        
         for fr in Settings["transcode"][0]:
             key = "%s-to-%s"%(fr, to);
             if key not in Settings.keys():
@@ -315,7 +342,7 @@ def settings_sanity(pl):
     #deprecated since output now is written to log.
     #if Settings["progress"] and Settings["pretend"]:
     #    printer.warning("options 'progress' and 'pretend' doesn't go well together.");
-
+    
     return True;
 
 def OverlaySettings( parser, sect ):

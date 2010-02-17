@@ -18,31 +18,22 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os, shutil
-import musync.custom as custom
-
-eval_env={
-  'os': os,
-  'shutil': shutil,
-  'musync': custom
-};
-
 """
 Basic Classes
 
 printer - handles everything that needs to be printed.
 """
 
-import musync.printer as Printer; # printer module
+import musync.printer; # printer module
+import musync.dbman as db;
 from musync.opts import Settings; # global settings
 from musync.errors import WarningException,FatalException; # exceptions
 import musync.opts; #options
-import musync.dbman as db;
 import musync.op;
 import musync.hints;
-import musync.meta;
+import musync.formats;
 
-import sys, os;
+import sys;
 import traceback;
 #import codecs;      # For utf-8 file support
 #set language-specific stuff:
@@ -50,7 +41,6 @@ import traceback;
 
 #global stop variable
 
-import musync.meta;
 import musync.sign;
 import musync.locker;
 
@@ -75,13 +65,12 @@ def op_add(pl, p):
     #if p.ext not in Settings["supported-ext"]:
     #    raise WarningException("unsupported extension");
     
-    meta = musync.meta.readmeta(p);
-    cmeta = musync.meta.cleanmeta(meta);
+    meta = musync.formats.open(p.path, **Settings["modify"]);
     
     # this causes nice display of artist/album
-    printer.focus(cmeta);
+    printer.focus(meta);
     
-    t = db.build_target(p, cmeta);
+    t = db.build_target(p, meta);
     # FIXME: need transcoding
     #if we are trying to transcode
     if Settings["transcode"]:
@@ -131,14 +120,13 @@ def op_remove(pl, p):
     if not p.isfile():
         raise WarningException("file not found: %s"%(p.path));
     
-    meta = musync.meta.readmeta(p);
-    cmeta = musync.meta.cleanmeta(meta);
-
+    meta = musync.formats.open(p.path, **Settings["modify"]);
+    
     # this causes nice display of artist/album
-    printer.focus(cmeta);
+    printer.focus(meta);
 
     # build target path
-    t = db.build_target(p, cmeta);
+    t = db.build_target(p, meta);
     
     if musync.locker.islocked(t):
         raise WarningException("locked: %s"%(t.relativepath()));
@@ -182,17 +170,16 @@ def op_fix(pl, p):
         
         # try to open, if you cannot, remove the files
         try:
-            musync.meta.openaudio(p);
+            musync.formats.open(p.path, **Settings["modify"]);
         except Exception, e:
             printer.action("removing (%s): %s"%(p.path, str(e)));
-            Settings["rm-with"](p.path);
+            Settings["rm"](p.path);
             return;
 	
     t = None;
     if p.isfile():
-        meta = musync.meta.readmeta(p);
-        cmeta = musync.meta.cleanmeta(meta);
-        t = db.build_target(p, cmeta);
+        meta = musync.formats.open(p.path, **Settings["modify"]);
+        t = db.build_target(p, meta);
     else:
         t = p;
 
@@ -269,12 +256,9 @@ def op_name(pl, p):
     printer, logger = pl;
 
     if p.isfile():
-        meta = musync.meta.readmeta(p);
-        cmeta = musync.meta.cleanmeta(meta);
-        
-        fmt = cmeta;
-        fmt["ext"] = p.ext;
-        print p.path, (Settings["format"]%fmt);
+        meta = musync.formats.open(p.path, **Settings["modify"]);
+        print "format: ", Settings["format"](meta);
+        print "dir:    ", Settings["dir"](meta);
     else:
         raise WarningException("path is not a file");
 
@@ -363,7 +347,7 @@ except KeyboardInterrupt:
 
 # This block ensures that ^C interrupts are handled quietly.
 def entrypoint():
-    printer = Printer.TermCaps(sys.stdout);
+    printer = musync.printer.TermCaps(sys.stdout);
     
     # note that this is not the place for WarningExceptions
     args = None; 
@@ -372,10 +356,12 @@ def entrypoint():
         args = musync.opts.read(sys.argv[1:], (printer, None));
     except Exception, e:
         printer.error(str(e));
+        if Settings["debug"]:
+            print traceback.format_exc();
         sys.exit(1);
         return;
     
-    logger = Printer.TermCaps(open(Settings["log"], "w"));
+    logger = musync.printer.TermCaps(open(Settings["log"], "w"));
     
     try:
         if args is not None: # a nice way to go

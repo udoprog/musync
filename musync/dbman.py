@@ -38,12 +38,12 @@
 import os;
 
 from musync.errors import WarningException, FatalException;
-from musync.opts import Settings;
+from musync.opts import Settings, SettingsObject;
 
 import musync.commons;
 # Current artist and album in focus
 
-def build_target(p, cmeta):
+def build_target(p, meta):
     """
     builds a target for many of the functions in musync.dbman
     this is just a complex concatenation of directories and 
@@ -54,28 +54,23 @@ def build_target(p, cmeta):
 
     @param p     Original Path instance which the metadata was
                  extracted from.
-    @param cmeta A dict containing the desired meta-name for target.
+    @param meta A dict containing the desired meta-name for target.
                  notice that this should have been cleaned with
                  musync.meta.cleanmeta();
     """
-
-    fmt = cmeta;
-    fmt["ext"] = p.ext;
     
-    return musync.commons.Path(
-        os.path.join(Settings["root"], Settings["dir"]%fmt, Settings["format"]%fmt)
-    );
+    return musync.commons.Path(os.path.join(Settings["root"], SettingsObject.dir(meta), SettingsObject.format(meta)));
 
 def hash_compare(path1, path2):
     """
     compares two paths, uses hashing to see if they are equal.
     """
-    hash = Settings["hash-with"](path1);
-    hash2 = Settings["hash-with"](path2);
+    hash = SettingsObject.hash(path1);
+    hash2 = SettingsObject.hash(path2);
     return hash == hash2;
 
 def hash_get(path):
-    return Settings["hash-with"](path);
+    return SettingsObject.hash(path);
 
 def add(pl, p, t):
     "adds a file to the database"
@@ -97,7 +92,7 @@ def add(pl, p, t):
     
     # by this time, we wan't it removed.
     if (t.exists() or t.islink()):
-        Settings["rm-with"](t.path);
+        Settings["rm"](t.path);
     
     attempts = 0;
     parity = None;
@@ -112,7 +107,7 @@ def add(pl, p, t):
         if Settings["check-hash"]:
             parity = hash_get(p.path);
         
-        Settings["add-with"](p.path, t.path);
+        SettingsObject.add(p.path, t.path);
         
         # if settings prompt, check target file hash.
         if Settings["check-hash"]:
@@ -134,10 +129,8 @@ def remove (p, t):
     if t.path == p.path and not Settings["force"]:
         raise WarningException("target is same as source  (use --force if you really wan't to do this)");
    
-    Settings["rm-with"](t.path);
+    SettingsObject.rm(t.path);
     return True;
-
-import musync.meta;
 
 def fix_file(pl, p, t):
     # this mean we are in the correct place...
@@ -153,7 +146,7 @@ def fix_file(pl, p, t):
         add(pl, p, t);
     
     printer.action("removing insane file - %s"%(p.relativepath()));
-    Settings["rm-with"](p.path);
+    SettingsObject.rm(p.path);
 
 def fix_dir(pl, p):
     printer, logger = pl;

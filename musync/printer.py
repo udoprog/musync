@@ -186,20 +186,20 @@ class TermCaps:
         
         self._write("[-] {magenta}{msg}{sgr0}\n", msg=text);
     
-    def focus(self, cmeta):
+    def focus(self, meta):
         """
         Set database focus on specific file and display some informative data.
         """
-        if self.focused["artist"] != cmeta["artist"]:
-            self.focused["artist"] = cmeta["artist"];
+        if self.focused["artist"] != meta.artist:
+            self.focused["artist"] = meta.artist;
             self.boldnotice( " > {0}".format(self.focused["artist"]) );
         
-        if self.focused["album"] != cmeta["album"]:
-            self.focused["album"] = cmeta["album"];
+        if self.focused["album"] != meta.album:
+            self.focused["album"] = meta.album;
             self.boldnotice( " > > {0}/{1}".format( self.focused["artist"], self.focused["album"] ) );
         
-        self.focused["title"] = cmeta["title"];
-        self.focused["track"] = cmeta["track"];
+        self.focused["title"] = meta.title;
+        self.focused["track"] = meta.track;
 
 def isSuppressed(type):
     "Checkes weither message type currently is suppressed trough configuration."
