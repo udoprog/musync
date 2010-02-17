@@ -23,7 +23,6 @@
 #
 
 from musync.errors import FatalException, WarningException;
-from musync.opts import Settings;
 import musync.opts;
 import musync.commons;
 import sys;
@@ -37,23 +36,21 @@ handled_files = 0;
 
 import cStringIO;
 
-def operate(pl, args, call, inroot=False):
+def operate(app, call, inroot=False):
     """
     Operation abstraction, this is the only function used by different operations.
     """
     
-    printer, logger = pl;
-    
-    for p in readargs(args, inroot):
+    for p in readargs(app, app.args[1:], inroot):
         if musync.sign.Interrupt is True:
             musync.sign.setret(musync.sign.INTERRUPT);
             raise FatalException("Caught Interrupt");
         
         try:
-            call(pl, p);
+            call(app, p);
         except WarningException, e: # WarningExceptions are just pritned, then move of to next file.
-            printer.warning( str(e) );
-#    if Settings["progress"]: ## run with progress.
+            app.printer.warning( str(e) );
+#    if app.settings["progress"]: ## run with progress.
 #        list=[];
 #        for p in readargs(args, inroot):
 #            list.append(p);
@@ -82,7 +79,7 @@ def operate(pl, args, call, inroot=False):
 #    
 #    else:
 
-def readargs(args, inroot):
+def readargs(app, args, inroot):
     """
     reads paths in different ways depending on number of arguments.
     yields the filepaths for easy access.
@@ -92,37 +89,37 @@ def readargs(args, inroot):
             file = sys.stdin.readline()[:-1];
         except Exception, e:
             raise FatalException(str(e));
-
+        
         while file:
-            for p in readpaths(file, inroot):
+            for p in readpaths(app, file, inroot):
                 yield p;
 
             file = sys.stdin.readline()[:-1];
     else:
         while len(args) > 0:
-            for p in readpaths(args[0], inroot):
+            for p in readpaths(app, args[0], inroot):
                 yield p;
 
             args = args[1:];
 
     return;
 
-def readpaths(path, inroot):
+def readpaths(app, path, inroot):
     """
     
     """
     global handled_dirs, handled_files;
     if inroot:
-        path = Settings["root"] + "/" + path;
+        path = app.settings["root"] + "/" + path;
 
-    p = musync.commons.Path(path);
+    p = musync.commons.Path(app, path);
 
     if p.isfile():
         handled_files += 1;
     elif p.isdir():
-        if Settings["recursive"]:
+        if app.settings["recursive"]:
             for f in p.children():
-                for t in readpaths(f.path, inroot):
+                for t in readpaths(app, f.path, inroot):
                     yield t;
         
         if p.isroot():

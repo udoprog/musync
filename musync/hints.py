@@ -22,16 +22,15 @@
 #
 
 import musync.op;
-from musync.opts import Settings;
 
 def print_hint(text):
     print "HINT: %s"%(text);
 
-def run():
+def run(app):
     # will never hint if silent
-    if Settings["silent"]:
+    if app.settings["silent"]:
         return;
-
+    
     if musync.op.handled_files == 0 and musync.op.handled_dirs > 0:
         print_hint("Did you forget to use --recursive (or -R)?");
         return;

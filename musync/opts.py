@@ -2,7 +2,7 @@
 # Musync opts - read global settings and keep track of them.
 #
 # a common line seen in most musync modules:
-#     from musync.opts import Settings;
+#     from musync.opts import app.settings;
 #
 # this enables all modules to work by their own settings.
 #
@@ -42,14 +42,16 @@ import types;
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
 
+import musync.locker;
 import musync.custom;
+import musync.printer;
 
 #operating system problems
 tmp=tempfile.gettempdir(); #general temp directory
 
 # Program behaviour is completely controlled trough this hashmap.
 # Try to read configuration, keep defaults if none found.
-Settings = {
+TemplateSettings = {
     #general
     "root":             None,
     "export":           False,
@@ -88,20 +90,26 @@ Settings = {
     "allow-similar":    None,
     "no-fixme":         False,
     "dateformat":       "\"%Y\"",
-    "debug":            None,
+    "debug":            True,
 };
 
-class SettingsObjectImpl:
+class LambdaEnviron:
     pass;
 
-SettingsObject = SettingsObjectImpl();
-
-eval_env={
-  'os': os,
-  'shutil': shutil,
-  'm': musync.custom,
-  's': SettingsObject,
-};
+class AppSession:
+    def __init__(self, stream):
+        self.printer = musync.printer.TermCaps(self, stream);
+        self.settings = dict(TemplateSettings);
+        self.locker = None;
+        self.args = list();
+        self.lambdaenv = LambdaEnviron();
+        
+        self.eval_env={
+          'os': os,
+          'shutil': shutil,
+          'm': musync.custom,
+          's': self.lambdaenv,
+        };
 
 ### This is changed with setup.py to suite environment ###
 #cfgfile="d:\\dump\\programs\\musync_x86\\musync.conf"
@@ -113,52 +121,21 @@ REPORT_ADDRESS="http://sourceforge.net/projects/musync or johnjohn.tedro@gmail.c
 # used with tmp_set/tmp_revert
 reverts = {};
 
-def tmp_set(key, value):
-    """
-    Used to temporary set a Settings key to another value.
-    Revert with tmp_revert
-    """
-    global reverts, Settings;
-    if reverts.has_key(key) and reverts[key] is not None:
-        raise FatalException("cannot temporary set config - key already set");
-
-    if not Settings.has_key(key):
-        raise FatalException("key does not exist in configuration");
-
-    reverts[key] = Settings[key];
-    Settings[key] = value;
-
-def tmp_revert(key):
-    """
-    Used to revert a Settings key that has been set using tmp_set.
-    """
-    global reverts, Settings;
-    if not reverts.has_key(key):
-        return;
-
-    if not Settings.has_key(key):
-        return;
-    
-    Settings[key] = reverts[key];
-    reverts[key] = None;
-
-def settings_premanip(pl):
+def settings_premanip(app):
     """
     Pre manipulation of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
     
-    printer, logger = pl;
-    
     # encoding everything as unicode strings.
-    for k in Settings.keys():
-        if isinstance(Settings[k], basestring) and not isinstance(Settings[k], unicode):
-            Settings[k] = Settings[k].decode("utf-8");
+    for k in app.settings.keys():
+        if isinstance(app.settings[k], basestring) and not isinstance(app.settings[k], unicode):
+            app.settings[k] = app.settings[k].decode("utf-8");
     
     # parse transcoding.
-    if Settings["transcode"]:
-        arg = Settings["transcode"];
+    if app.settings["transcode"]:
+        arg = app.settings["transcode"];
         i = arg.find('=');
         if i < 0:
             raise FatalException("--transcode (or -T) argument invalid");
@@ -166,10 +143,10 @@ def settings_premanip(pl):
         t_from = arg[:i].split(',');
         t_to = arg[i+1:];
         
-        Settings["transcode"] = [t_from, t_to];
+        app.settings["transcode"] = [t_from, t_to];
     
     # iterate all of the modification assignments.
-    for arg in Settings["modify"]["args"]:
+    for arg in app.settings["modify"]["args"]:
         i = arg.find('=');
         
         if i < 0:
@@ -178,50 +155,46 @@ def settings_premanip(pl):
         key = arg[:i];
         modification = arg[i+1:].decode('utf-8');
         
-        if key not in Settings["modify"]:
-            printer.error("Modify key invalid:", key);
+        if key not in app.settings["modify"]:
+            app.printer.error("Modify key invalid:", key);
             return False;
         else:
-            Settings["modify"][key] = modification;
-            printer.notice("modify", key, "to", modification);
+            app.settings["modify"][key] = modification;
+            app.printer.notice("modify", key, "to", modification);
     
     return True;
     
 
-def settings_postmanip(pl):
+def settings_postmanip(app):
     """
     postmanipulation of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
-
-    printer, logger = pl;
     
-    Settings["root"] = os.path.abspath(os.path.expanduser(Settings["root"]));
-    import musync.locker; # needed for settings global variables
-    musync.locker.root = Settings["root"];
-    musync.locker.lock_file = Settings["lock-file"];
-   
-    # attempt to create 'lock-file'
-    lockpath=musync.locker.get_lockpath();
-
-    if not os.path.isdir(Settings["root"]):
-        printer.error("         root:", "Root library directory non existant, cannot continue.");
-        printer.error("current value:", Settings["root"]);
+    app.settings["root"] = os.path.abspath(os.path.expanduser(app.settings["root"]));
+    
+    app.locker = musync.locker.LockFileDB(app.settings["root"], app.settings["lock-file"]);
+    
+    lockpath = app.locker.get_lockpath();
+    
+    if not os.path.isdir(app.settings["root"]):
+        app.printer.error("         root:", "Root library directory non existant, cannot continue.");
+        app.printer.error("current value:", app.settings["root"]);
         return False;
     
     if not os.path.isfile(lockpath):
-        printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
-        printer.boldnotice("      current value (relative to root):", lockpath);
-        printer.boldnotice("                             lock-file:", Settings["lock-file"]);
+        app.printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
+        app.printer.boldnotice("      current value (relative to root):", lockpath);
+        app.printer.boldnotice("                             lock-file:", app.settings["lock-file"]);
         try:
             f = open(lockpath, "w");
             f.close();
         except OSError, e:
-            printer.error("    Failed to create:", str(e));
+            app.printer.error("    Failed to create:", str(e));
             return False;
         except IOError, e:
-            printer.error("    Failed to create:", str(e));
+            app.printer.error("    Failed to create:", str(e));
             return False;
     
     return True;
@@ -229,93 +202,91 @@ def settings_postmanip(pl):
 ###
 # will try to display all noticed errors in configuration
 # then return False which will stop the program from further execution.
-def settings_sanity(pl):
+def settings_sanity(app):
     """
     Sanity check of settings.
     this is executed in order:
     premanip > sanity > postmanip
     """
     
-    printer, logger = pl;
-    
     # try to pass a valid format string
     err=False;
     
     # none sanitycheck
     for key in ["root","lock-file"]:
-        if Settings[key] is None:
-            printer.error("key must exist:", key);
+        if app.settings[key] is None:
+            app.printer.error("key must exist:", key);
             err=True;
     
-    for key in Settings:
-        val = Settings[key];
+    for key in app.settings:
+        val = app.settings[key];
         
         if val is None: # these should have been caught earlier.
             continue;
         
         if isinstance(val, basestring) and "-" not in key and val.startswith("lambda"):
             try:
-                cmd = eval(val, eval_env);
+                cmd = eval(val, app.eval_env);
             except Exception, e:
-                printer.error(key + ": " + str(e));
+                app.printer.error(key + ": " + str(e));
                 err = True;
                 continue;
             
             if type(cmd) != types.FunctionType:
-                printer.error(key + ": is not a lambda function");
+                app.printer.error(key + ": is not a lambda function");
                 err = True;
                 continue;
             
-            SettingsObject.__dict__[key] = cmd;
+            app.lambdaenv.__dict__[key] = cmd;
     
     # check that a specific set of lambda functions exist
     for key in ["add", "rm", "filter", "hash", "targetpath", "checkhash"]:
-        if not hasattr(SettingsObject, key):
-            printer.error("must be a lambda function:", key);
+        if not hasattr(app.lambdaenv, key):
+            app.printer.error("must be a lambda function:", key);
             err = True;
     
-    if Settings["transcode"]:
-        to=Settings["transcode"][1];
+    if app.settings["transcode"]:
+        to=app.settings["transcode"][1];
         
-        for fr in Settings["transcode"][0]:
+        for fr in app.settings["transcode"][0]:
             key = fr + "-to-" + to;
-            if key not in Settings.keys():
-                printer.error(
+            if key not in app.settings.keys():
+                app.printer.error(
                     "transcoding is specified but corresponding <from ext>-to-<to ext> key is missing in configuration."
                 );
-                printer.error("transcode:", fr, "to", to);
+                app.printer.error("transcode:", fr, "to", to);
                 err = True;
             else:
                 try:
-                    cmd = eval(Settings[key], eval_env);
+                    cmd = eval(app.settings[key], app.eval_env);
                 except Exception, e:
-                    printer.error(key + ": " + str(e));
+                    app.printer.error(key + ": " + str(e));
                     err = True;
                     continue;
                 
                 if type(cmd) != types.FunctionType:
-                    printer.error(key + ": is not a function");
+                    app.printer.error(key + ": is not a function");
                     err = True;
                     continue;
                 
-                Settings[key] = cmd;
+                app.settings[key] = cmd;
     
     if err:
-        printer.error("");
-        printer.error("One or more configuration keys where invalid");
-        printer.error("Check {0} for errors (correct paths, directories and commands).".format((os.path.join(cfgfiles[0]))));
-        printer.error("Perhaps you forgot to use --config (or -c)?");
-        printer.error("");
+        app.printer.error("");
+        app.printer.error("One or more configuration keys where invalid");
+        app.printer.error("Check {0} for errors (correct paths, directories and commands).".format((os.path.join(cfgfiles[0]))));
+        app.printer.error("Perhaps you forgot to use --config (or -c)?");
+        app.printer.error("");
         return False;
 
     #WARNINGS
     #deprecated since output now is written to log.
-    #if Settings["progress"] and Settings["pretend"]:
-    #    printer.warning("options 'progress' and 'pretend' doesn't go well together.");
+    #if app.settings["progress"] and app.settings["pretend"]:
+    #    app.printer.warning("options 'progress' and 'pretend' doesn't go well together.");
     
     return True;
 
-def OverlaySettings( parser, sect ):
+def overlay_settings( app, parser, sect ):
     if parser.has_section(sect):
         # 'general' section
         for opt in parser.options( sect ):
@@ -332,9 +303,9 @@ def OverlaySettings( parser, sect ):
                 "allow-similar",
                 "no-fixme",
             ]:
-                Settings[opt] = parser.getboolean(sect, opt);
+                app.settings[opt] = parser.getboolean(sect, opt);
             else:
-                Settings[opt] = os.path.expandvars(
+                app.settings[opt] = os.path.expandvars(
                     parser.get(sect, opt)
                 );
         return True;
@@ -342,9 +313,7 @@ def OverlaySettings( parser, sect ):
         return False
 
 # return None for stopping of execution
-def read(argv, pl):
-    printer, logger = pl;
-    
+def read(app, argv):
     # Check argument sanity.
     if len(argv) < 1:
         raise FatalException("Insufficient arguments, see -h");
@@ -358,8 +327,8 @@ def read(argv, pl):
         cp.readfp(open(cfg));
     
     # open log
-    if not OverlaySettings(cp, "general"):
-        printer.error("could not overlay settings from 'general' section");
+    if not overlay_settings(app, cp, "general"):
+        app.printer.error("could not overlay settings from 'general' section");
         return None;
     
     # import the getopt module.
@@ -398,49 +367,49 @@ def read(argv, pl):
     for opt, arg in opts:
         #loop through the arguments and do what we're supposed to do:
         if opt in ("-e","--export"):
-            Settings["export"] = True;
+            app.settings["export"] = True;
         elif opt in ("-p", "--pretend"):
-            Settings["pretend"] = True;
+            app.settings["pretend"] = True;
         elif opt in ("-V", "--version"):
             print version_str%version;
             return None;
         elif opt in ("-R", "--recursive"):
-            Settings["recursive"] = True;
+            app.settings["recursive"] = True;
         elif opt in ("-L", "--lock"):
-            Settings["lock"] = True;
+            app.settings["lock"] = True;
         elif opt in ("-B", "--progress"):
-            Settings["progress"] = True;
+            app.settings["progress"] = True;
         elif opt in ( "-s", "--silent" ):
-            Settings["silent"] = True;
+            app.settings["silent"] = True;
         elif opt in ( "-v", "--verbose" ):
-            Settings["verbose"] = True;
+            app.settings["verbose"] = True;
         elif opt in ("-C", "--coloring"):
-            Settings["coloring"] = True;
+            app.settings["coloring"] = True;
         elif opt in ("-r", "--root"):
-            Settings["root"] = arg;
+            app.settings["root"] = arg;
         elif opt in ("-c", "--config"):
             # load optional section
             configuration = arg;
         elif opt in ("-f", "--force"):
-            Settings["force"] = True;
+            app.settings["force"] = True;
         elif opt in ("-M", "--modify"):
             # render modify-string
-            Settings["modify"]["args"].append(arg);
+            app.settings["modify"]["args"].append(arg);
         elif opt in ("-T", "--transcode"):
-            Settings["transcode"]=arg;
+            app.settings["transcode"]=arg;
         elif opt in ("--allow-similar"):
-            Settings["allow-similar"] = True;
+            app.settings["allow-similar"] = True;
         elif opt in ("--no-fixme"):
-            Settings["no-fixme"] = True;
+            app.settings["no-fixme"] = True;
         elif opt in ("-d", "--debug"):
-            Settings["debug"] = True;
+            app.settings["debug"] = True;
         else:
             raise FatalException("Undefined option '%s'."%(opt));
     
     # no config specified, use default.
     if not configuration:
-        configuration = Settings["default-config"];
-        printer.notice("[using 'default-config' since --config not found]");
+        configuration = app.settings["default-config"];
+        app.printer.notice("[using 'default-config' since --config not found]");
     
     #To avoid curcular references.
     anti_circle = [];
@@ -448,42 +417,43 @@ def read(argv, pl):
     # Everytime default-config is set config must be rescanned.
     #
 
-    default_config = Settings["default-config"];
+    default_config = app.settings["default-config"];
     
     while configuration:
-        Settings[ "default-config" ] = False;
+        app.settings[ "default-config" ] = False;
         
         # Overlay configs
         for section in configuration.split(','):
             if section in anti_circle:
-                printer.error("Configuration has circular references, take a good look at key 'default-config'");
+                app.printer.error("Configuration has circular references, take a good look at key 'default-config'");
                 return None;
             
             anti_circle.append( section );
             
-            if not OverlaySettings( cp, section ):
-                printer.error("could not overlay section:", section);
+            if not overlay_settings(app, cp, section ):
+                app.printer.error("could not overlay section:", section);
                 return None;
         
-        configuration = Settings["default-config"];
+        configuration = app.settings["default-config"];
     
     config_fatal = True;
     
-    if settings_premanip(pl) and settings_sanity(pl) and settings_postmanip(pl):
+    if settings_premanip(app) and settings_sanity(app) and settings_postmanip(app):
         config_fatal = False;
    
-    Settings["default-config"] = default_config;
-
-    if Settings["export"]:
-        for key, value in Settings.iteritems():
+    app.settings["default-config"] = default_config;
+    
+    if app.settings["export"]:
+        for key, value in app.settings.iteritems():
             if key != "export":
                 print "%s %s"%(key, value);
         return None;
 
     if config_fatal:
         raise FatalException("example configuration should have been distributed with this program, see README");
-
-    return args;
+    
+    app.args = args;
+    return app;
 
 def Usage ():
     "returns usage information"
@@ -581,4 +551,3 @@ def Usage ():
             log: (/tmp/musync.log)
                 Created at each run - empty when no problem.
                 """
-    return None;

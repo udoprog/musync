@@ -30,7 +30,6 @@
 
 import sys, os, codecs;
 
-from musync.opts import Settings;
 from musync.errors import FatalException;
 
 class TermCaps:
@@ -50,7 +49,8 @@ class TermCaps:
         "title": None
     };
     
-    def __init__(self, stream):
+    def __init__(self, app, stream):
+        self.app = app;
         self.haslogged = False;
         self.tc = True;
         self.stream=stream;
@@ -139,7 +139,7 @@ class TermCaps:
         Issues a warning to the user.
         Warnings are meant to happen when something screws up but the program can still complete execution.
         """
-        if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
             return;
         
         self._write("[!] {red}{msg}{sgr0}\n", msg=self._joinstrings(text));
@@ -149,7 +149,7 @@ class TermCaps:
         Issues an error to the user.
         Errors should be foolowed by the stopped execution by the program.
         """
-        if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
             return;
         
         self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=self._joinstrings(text));
@@ -159,19 +159,19 @@ class TermCaps:
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
         """
-        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
         self._write("[:] {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def blanknotice(self, *text):
-        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
         self._write("    {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def boldnotice(self, *text):
-        if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
         self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
@@ -181,7 +181,7 @@ class TermCaps:
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
         """
-        if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
+        if self.app.settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
             return;
         
         self._write("[-] {magenta}{msg}{sgr0}\n", msg=self._joinstrings(text));
@@ -217,7 +217,7 @@ class TermCaps:
 
 def isSuppressed(type):
     "Checkes weither message type currently is suppressed trough configuration."
-    if type.lower() in map(lambda s: s.strip().lower(), Settings["suppressed"].split(',')):
+    if type.lower() in map(lambda s: s.strip().lower(), self.app.settings["suppressed"].split(',')):
         return True;
     
     return False;

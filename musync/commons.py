@@ -26,7 +26,6 @@
 import os;
 
 import musync.formats;
-from musync.opts import Settings;
 
 class Path:
     """
@@ -41,10 +40,12 @@ class Path:
     dir=None;
     basename=None;
 
-    def __init__(self, path, meta=None):
+    def __init__(self, app, path, meta=None):
         """
         initiate variables.
         """
+
+        self.app = app;
         self.path = os.path.abspath(path);
         self.dir = os.path.dirname(self.path);
         self.ext = os.path.splitext(self.path)[1].lower();
@@ -56,7 +57,7 @@ class Path:
         # open metadata if this is a file
         # if this is None, it's an indication that the file is not supported.
         if self.isfile():
-            self.meta = musync.formats.open(self.path, **Settings["modify"]);
+            self.meta = musync.formats.open(self.path, **self.app.settings["modify"]);
     
     def isfile(self):
         return os.path.isfile(self.path);
@@ -95,13 +96,13 @@ class Path:
         """
         try:
             for file in sorted(os.listdir(self.path)):
-                yield Path(os.path.join(self.path, file));
+                yield Path(self.app, os.path.join(self.path, file));
         except OSError:
             return;
         return;
     
     def parent(self):
-        return Path(os.path.dirname(self.path));
+        return Path(self.app, os.path.dirname(self.path));
 
     def walk(self, test):
         """
@@ -121,11 +122,11 @@ class Path:
         return;
     # the following are only helpful in musync
     def inroot(self):
-        if not self.isroot() and self.path.startswith(Settings["root"]):
+        if not self.isroot() and self.path.startswith(self.app.settings["root"]):
             return True;
         return False;
     def isroot(self):
-        if self.path == Settings["root"]:
+        if self.path == self.app.settings["root"]:
             return True;
         return False;
     def relativepath(self):
@@ -135,5 +136,5 @@ class Path:
         """
         if not self.inroot():
             return False;
-        l = len(Settings["root"]);
+        l = len(self.app.settings["root"]);
         return self.path[l+1:];
