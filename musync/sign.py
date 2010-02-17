@@ -34,6 +34,11 @@ Ret = INTERRUPT;
 def ret():
     global Ret;
     return Ret;
+
 def setret(ret):
     global Ret;
     Ret = ret;
+
+def interrupt_handler(sig):
+    global Interrupt;
+    Interrupt = True;

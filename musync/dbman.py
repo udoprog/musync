@@ -186,6 +186,7 @@ def transcode(pl, p, t):
     if Settings["pretend"]:
         printer.action("would have transcoded", t_from, "to", to_to);
     else:
+        printer.action("transcoding", t_from, "to", t_to);
         Settings[t_from + "-to-" + t_to](p.path, tmp_file);
     
     # temp-file is the new source.
