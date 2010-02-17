@@ -59,7 +59,7 @@ def build_target(p, meta):
                  musync.meta.cleanmeta();
     """
     
-    return musync.commons.Path(os.path.join(Settings["root"], SettingsObject.dir(meta), SettingsObject.format(meta)));
+    return musync.commons.Path(os.path.join(Settings["root"], SettingsObject.targetpath(meta)));
 
 def hash_compare(path1, path2):
     """
@@ -85,14 +85,16 @@ def add(pl, p, t):
             raise FatalException(str(e));
 
     if t.path == p.path:
-        raise WarningException("source and target file same");
-
+        printer.warning("source and target file same");
+        return;
+    
     if (t.exists() or t.islink()) and not Settings["force"]:
-        raise WarningException("file already exists: %s"%(t.relativepath()));
+        printer.warning("file already exists:", t.relativepath());
+        return;
     
     # by this time, we wan't it removed.
     if (t.exists() or t.islink()):
-        Settings["rm"](t.path);
+        SettingsObject.rm(t.path);
     
     attempts = 0;
     parity = None;
@@ -124,11 +126,15 @@ def add(pl, p, t):
 
     return True;
 
-def remove (p, t):
+def remove (pl, p, t):
     "removes a file from the database"
+    
+    printer, logger = pl;
+    
     if t.path == p.path and not Settings["force"]:
-        raise WarningException("target is same as source  (use --force if you really wan't to do this)");
-   
+        printer.warning("target is same as source  (use --force if you really wan't to do this)");
+        return;
+    
     SettingsObject.rm(t.path);
     return True;
 
@@ -159,9 +165,12 @@ def fix_dir(pl, p):
     p.rmdir();
 
 #transcoding
-def transcode(p, t):
+def transcode(pl, p, t):
+    printer, logger = pl;
+    
     if p.ext not in Settings["transcode"][0]:
          return (p, t);
+    
     t_from = p.ext;
     t_to = Settings["transcode"][1];
     # this is our new target.
@@ -171,10 +180,13 @@ def transcode(p, t):
     tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, os.getpid(), t_to);
     
     if (t.exists() or t.islink()) and not Settings["force"]:
-        raise WarningException("file already exists: %s"%(t.relativepath()));
+        printer.warninig("file already exists:", t.relativepath());
+        return;
     
-    if not Settings["pretend"]:
-        Settings["%s-to-%s"%(t_from, t_to)](p.path, tmp_file);
+    if Settings["pretend"]:
+        printer.action("would have transcoded", t_from, "to", to_to);
+    else:
+        Settings[t_from + "-to-" + t_to](p.path, tmp_file);
     
     # temp-file is the new source.
     p = musync.commons.Path(tmp_file);

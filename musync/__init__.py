@@ -79,9 +79,7 @@ def op_add(pl, p):
     # FIXME: need transcoding
     #if we are trying to transcode
     if Settings["transcode"]:
-        if Settings["pretend"]:
-            printer.notice("would transcode: %s"%(p.path));
-        (p, t) = db.transcode(p, t);
+        (p, t) = db.transcode(pl, p, t);
     
     if musync.locker.islocked(t):
         printer.warning("locked: %s"%(p.path));
@@ -158,7 +156,7 @@ def op_remove(pl, p):
             printer.blanknotice("          as:", t.relativepath());
         else:
             printer.action("removing file:", t.relativepath());
-            db.remove(p, t);
+            db.remove(pl, p, t);
         
         return;
     
@@ -305,13 +303,12 @@ def op_inspect(pl, p):
         return;
 
     printer.boldnotice(meta.filename)
-    printer.blanknotice("artist:  ", meta.artist)
-    printer.blanknotice("album:   ", meta.album)
-    printer.blanknotice("title:   ", meta.artist)
-    printer.blanknotice("track:   ", str(meta.track))
-    printer.blanknotice("year:    ", str(meta.year))
-    printer.blanknotice("format:  ", SettingsObject.format(meta));
-    printer.blanknotice("dir:     ", SettingsObject.dir(meta));
+    printer.blanknotice("artist:    ", repr(meta.artist))
+    printer.blanknotice("album:     ", repr(meta.album))
+    printer.blanknotice("title:     ", repr(meta.title))
+    printer.blanknotice("track:     ", repr(meta.track))
+    printer.blanknotice("year:      ", repr(meta.year))
+    printer.blanknotice("targetpath:", repr(SettingsObject.targetpath(meta)), "from", repr(Settings["targetpath"]));
 
 def main(pl, args):
     printer, logger = pl;

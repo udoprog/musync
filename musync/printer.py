@@ -141,8 +141,8 @@ class TermCaps:
         """
         if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
             return;
-
-        self._write("[!] {red}{msg}{sgr0}\n", msg=' '.join(text));
+        
+        self._write("[!] {red}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def error(self, *text):
         """
@@ -152,7 +152,7 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
             return;
         
-        self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=' '.join(text));
+        self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def notice(self, *text):
         """
@@ -162,19 +162,19 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("[:] {green}{msg}{sgr0}\n", msg=' '.join(text));
+        self._write("[:] {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def blanknotice(self, *text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("    {green}{msg}{sgr0}\n", msg=' '.join(text));
+        self._write("    {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def boldnotice(self, *text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=' '.join(text));
+        self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=self._joinstrings(text));
 
     def action(self, *text):
         """
@@ -184,7 +184,21 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
             return;
         
-        self._write("[-] {magenta}{msg}{sgr0}\n", msg=' '.join(text));
+        self._write("[-] {magenta}{msg}{sgr0}\n", msg=self._joinstrings(text));
+    
+    def _joinstrings(self, items):
+        result = list();
+        
+        for i in items:
+            if not isinstance(i, basestring):
+                continue;
+            
+            if isinstance(i, unicode):
+                result.append(i.encode("utf-8"));
+            else:
+                result.append(i);
+        
+        return ' '.join(result);
     
     def focus(self, meta):
         """

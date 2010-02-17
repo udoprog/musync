@@ -153,11 +153,11 @@ def settings_premanip(pl):
     
     printer, logger = pl;
     
-    # encoding everything as strings.
+    # encoding everything as unicode strings.
     for k in Settings.keys():
-      if isinstance(Settings[k], unicode):
-        Settings[k] = Settings[k].encode("utf-8");
-
+        if isinstance(Settings[k], basestring) and not isinstance(Settings[k], unicode):
+            Settings[k] = Settings[k].decode("utf-8");
+    
     # parse transcoding.
     if Settings["transcode"]:
         arg = Settings["transcode"];
@@ -173,18 +173,20 @@ def settings_premanip(pl):
     # iterate all of the modification assignments.
     for arg in Settings["modify"]["args"]:
         i = arg.find('=');
+        
         if i < 0:
             raise FatalException("--modify (or -M) argument invalid");
-
+        
         key = arg[:i];
-        modification = arg[i+1:];
+        modification = arg[i+1:].decode('utf-8');
         
         if key not in Settings["modify"]:
-            raise FatalException("Modify key '%s' invalid"%( key ));
+            printer.error("Modify key invalid:", key);
+            return False;
         else:
             Settings["modify"][key] = modification;
-            printer.notice("using: %s=\"%s\""%( key, modification ));
-
+            printer.notice("modify", key, "to", modification);
+    
     return True;
     
 
@@ -206,19 +208,22 @@ def settings_postmanip(pl):
     lockpath=musync.locker.get_lockpath();
 
     if not os.path.isdir(Settings["root"]):
-        printer.error("         root: Root library directory non existant, cannot continue.");
-        printer.error("current value: %s"%(Settings["root"]));
+        printer.error("         root:", "Root library directory non existant, cannot continue.");
+        printer.error("current value:", Settings["root"]);
         return False;
     
     if not os.path.isfile(lockpath):
         printer.boldnotice("  lock-file: is missing, I take the liberty to attempt creating one.");
-        printer.boldnotice("      current value (relative to root): %s"%(lockpath));
-        printer.boldnotice("                             lock-file: %s"%(Settings["lock-file"]));
+        printer.boldnotice("      current value (relative to root):", lockpath);
+        printer.boldnotice("                             lock-file:", Settings["lock-file"]);
         try:
             f = open(lockpath, "w");
             f.close();
-        except Exception, e:
-            printer.error("    Failed to create - %s"%(str(e)));
+        except OSError, e:
+            printer.error("    Failed to create:", str(e));
+            return False;
+        except IOError, e:
+            printer.error("    Failed to create:", str(e));
             return False;
     
     return True;
@@ -237,41 +242,12 @@ def settings_sanity(pl):
     
     # try to pass a valid format string
     err=False;
-    try:
-        Settings["format"]%{'artist':"",'album':"",'title':"",'track':0,'ext':""};
-    except TypeError:
-        printer.error("configuration key 'format' invalid");
-        err=True;
-
-    #if not os.path.iswriteable(Settings["root"]):
-    #    printer.error("root: is not writeable");
-    #    err=True;
-
+    
     # none sanitycheck
     for key in ["root","lock-file"]:
         if Settings[key] is None:
-            printer.error("%s: must exist."%(key));
-            printer.error("    current value: %s"%(Settings[key]));
+            printer.error("key must exist:", key);
             err=True;
-        else:
-            # do a dummy replace to check formats and SHIT
-            try:
-                for k in Settings[key].split(' '):
-                    k%{
-                        'source': "foo",
-                        'dest': "bar",
-                        'artist': "baz",
-                        'album': "foobar",
-                        'track': 0,
-                        'year': 0,
-                        'ext': "baz",
-                        'target': "fbz",
-                    };
-            except ValueError, e:
-                printer.error("%s: %s."%(key, str(e)));
-                printer.error("    current value: %s"%(Settings[key].replace("%", "%%")));
-                printer.error("    possible problems with python format; e.g. '%%(source)s' being '%%(source)'.");
-                err = True;
     
     for key in Settings:
         val = Settings[key];
@@ -292,28 +268,24 @@ def settings_sanity(pl):
                 err = True;
                 continue;
             
-            Settings[key] = cmd;
-            
-            ud = dict();
-            ud[key] = cmd;
-            SettingsObject.__dict__.update(ud);
+            SettingsObject.__dict__[key] = cmd;
     
     # check that a specific set of lambda functions exist
-    for key in ["add", "rm", "filter", "hash", "dir", "format"]:
-        if type(Settings[key]) != types.FunctionType:
-            printer.error(key + ": must be a lambda function");
+    for key in ["add", "rm", "filter", "hash", "targetpath"]:
+        if not hasattr(SettingsObject, key):
+            printer.error("must be a lambda function:", key);
             err = True;
     
     if Settings["transcode"]:
         to=Settings["transcode"][1];
         
         for fr in Settings["transcode"][0]:
-            key = "%s-to-%s"%(fr, to);
+            key = fr + "-to-" + to;
             if key not in Settings.keys():
                 printer.error(
                     "transcoding is specified but corresponding <from ext>-to-<to ext> key is missing in configuration."
                 );
-                printer.error("transcode: %s=%s"%(fr, to));
+                printer.error("transcode:", fr, "to", to);
                 err = True;
             else:
                 try:
@@ -347,8 +319,6 @@ def settings_sanity(pl):
 
 def OverlaySettings( parser, sect ):
     if parser.has_section(sect):
-        #print "Overlaying [%s] settings"%( sect );
-        
         # 'general' section
         for opt in parser.options( sect ):
             #Parse booleans
@@ -370,9 +340,9 @@ def OverlaySettings( parser, sect ):
                 Settings[opt] = os.path.expandvars(
                     parser.get(sect, opt)
                 );
-        return;
+        return True;
     else:
-        raise FatalException("missing configuration key - %s"%( sect ));
+        return False
 
 # return None for stopping of execution
 def read(argv, pl):
@@ -391,7 +361,9 @@ def read(argv, pl):
         cp.readfp(open(cfg));
     
     # open log
-    OverlaySettings(cp, "general");
+    if not OverlaySettings(cp, "general"):
+        printer.error("could not overlay settings from 'general' section");
+        return None;
     
     # import the getopt module.
     try:
@@ -492,10 +464,14 @@ def read(argv, pl):
         # Overlay configs
         for section in configuration.split(','):
             if section in anti_circle:
-                raise FatalException("Configuration has circular references, take a good look at key 'default-config'");
+                printer.error("Configuration has circular references, take a good look at key 'default-config'");
+                return None;
             
             anti_circle.append( section );
-            OverlaySettings( cp, section );
+            
+            if not OverlaySettings( cp, section ):
+                printer.error("could not overlay section:", section);
+                return None;
         
         configuration = Settings["default-config"];
     
