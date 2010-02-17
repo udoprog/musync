@@ -79,7 +79,12 @@ def op_add(pl, p):
     # FIXME: need transcoding
     #if we are trying to transcode
     if Settings["transcode"]:
-        (p, t) = db.transcode(pl, p, t);
+        r = db.transcode(pl, p, t);
+        
+        if not r:
+            return;
+        
+        p, t = r;
     
     if musync.locker.islocked(t):
         printer.warning("locked: %s"%(p.path));
