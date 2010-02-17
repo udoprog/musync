@@ -1,3 +1,4 @@
+import mutagen.id3;
 import mutagen.oggvorbis;
 
 import meta;
@@ -18,7 +19,7 @@ class OggVCommentMetaFile(meta.MetaFile):
             self.track = int(self.track);
         
         if self.year:
-            self.year = int(self.year);
+            self.year = mutagen.id3.ID3TimeStamp(self.year).year;
 
 class VCFLACMetaFile(meta.MetaFile):
     __translate__ = {
@@ -35,3 +36,6 @@ class VCFLACMetaFile(meta.MetaFile):
         
         if self.track:
             self.track = int(self.track);
+        
+        if self.year:
+            self.year = mutagen.id3.ID3TimeStamp(self.year).year;
