@@ -58,17 +58,15 @@ Settings = {
     "default-config":   "",
     #"filter-naming":    None,
     "log":              os.path.join(tmp, "musync.log"),
-    "fix-log":          os.path.join(tmp, "musync-fixes.log"),
     "add":              None,
     "rm":               None,
     "filter":           None,
     "coloring":         False,
     "hash":             None,
-    "check-hash":       False,
+    "checkhash":        None,
     #naming
     "dir":              None,
     "format":           None,
-    #"supported-ext":    ".mp3,.ogg,.flac",
     #options
     "suppressed":       "notice,warning",
     "silent":           False,
@@ -271,7 +269,7 @@ def settings_sanity(pl):
             SettingsObject.__dict__[key] = cmd;
     
     # check that a specific set of lambda functions exist
-    for key in ["add", "rm", "filter", "hash", "targetpath"]:
+    for key in ["add", "rm", "filter", "hash", "targetpath", "checkhash"]:
         if not hasattr(SettingsObject, key):
             printer.error("must be a lambda function:", key);
             err = True;
@@ -327,7 +325,6 @@ def OverlaySettings( parser, sect ):
                 "verbose",
                 "force",
                 "coloring",
-                "check-hash",
                 "recursive",
                 "pretend",
                 "lock",
@@ -382,7 +379,6 @@ def read(argv, pl):
                 "verbose",
                 "coloring",
                 "force",
-                "check-hash",
                 "log=",
                 "root=",
                 "config=",
@@ -425,12 +421,8 @@ def read(argv, pl):
         elif opt in ("-c", "--config"):
             # load optional section
             configuration = arg;
-        elif opt in ("-l", "--log"):
-            Settings["fix-log"] = arg;
         elif opt in ("-f", "--force"):
             Settings["force"] = True;
-        elif opt in ("-h", "--check-hash"):
-            Settings["check-hash"] = True;
         elif opt in ("-M", "--modify"):
             # render modify-string
             Settings["modify"]["args"].append(arg);
@@ -543,9 +535,6 @@ def Usage ():
                 Specify configuration section.
                 These work as overlays and the latest key specified
                 is the one used, empty keys do not overwrite pre-defined.
-            --log (or -l) <fix-log> 'fix-log':
-                Specify where the fix-log is to be written (or read when
-                operation 'fix')
             -M key="new value"
                 Use metadata provided here instead of the one in files.
                 Valid keys are:
@@ -591,9 +580,5 @@ def Usage ():
         Files (defaults):
             log: (/tmp/musync.log)
                 Created at each run - empty when no problem.
-            fix-log: (/tmp/musync-fixes.log)
-                Created at each run - lists all files in need
-                of fixing to be used with musync, usually metadata
-                problems.
                 """
     return None;

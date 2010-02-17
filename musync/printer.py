@@ -206,11 +206,11 @@ class TermCaps:
         """
         if self.focused["artist"] != meta.artist:
             self.focused["artist"] = meta.artist;
-            self.boldnotice( " > {0}".format(self.focused["artist"]) );
+            self.boldnotice(">", self.focused["artist"]);
         
         if self.focused["album"] != meta.album:
             self.focused["album"] = meta.album;
-            self.boldnotice( " > > {0}/{1}".format( self.focused["artist"], self.focused["album"] ) );
+            self.boldnotice("> >", self.focused["artist"], "/", self.focused["album"] );
         
         self.focused["title"] = meta.title;
         self.focused["track"] = meta.track;

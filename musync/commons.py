@@ -25,6 +25,7 @@
 
 import os;
 
+import musync.formats;
 from musync.opts import Settings;
 
 class Path:
@@ -40,7 +41,7 @@ class Path:
     dir=None;
     basename=None;
 
-    def __init__(self, path):
+    def __init__(self, path, meta=None):
         """
         initiate variables.
         """
@@ -51,6 +52,12 @@ class Path:
         
         if len(self.ext) > 0:
             self.ext = self.ext[1:];
+        
+        # open metadata if this is a file
+        # if this is None, it's an indication that the file is not supported.
+        if self.isfile():
+            self.meta = musync.formats.open(self.path, **Settings["modify"]);
+    
     def isfile(self):
         return os.path.isfile(self.path);
 

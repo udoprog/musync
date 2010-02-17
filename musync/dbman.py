@@ -43,7 +43,7 @@ from musync.opts import Settings, SettingsObject;
 import musync.commons;
 # Current artist and album in focus
 
-def build_target(p, meta):
+def build_target(p):
     """
     builds a target for many of the functions in musync.dbman
     this is just a complex concatenation of directories and 
@@ -59,7 +59,7 @@ def build_target(p, meta):
                  musync.meta.cleanmeta();
     """
     
-    return musync.commons.Path(os.path.join(Settings["root"], SettingsObject.targetpath(meta)));
+    return musync.commons.Path(os.path.join(Settings["root"], SettingsObject.targetpath(p)));
 
 def hash_compare(path1, path2):
     """
@@ -94,7 +94,7 @@ def add(pl, p, t):
     
     # by this time, we wan't it removed.
     if (t.exists() or t.islink()):
-        SettingsObject.rm(t.path);
+        SettingsObject.rm(t);
     
     attempts = 0;
     parity = None;
@@ -105,21 +105,20 @@ def add(pl, p, t):
         if attempts > 0:
             if not p.exists():
                 raise FatalException("cannot perform add operation, source file does no longer exist!");
-
-        if Settings["check-hash"]:
+        
+        if SettingsObject.checkhash(p.meta):
             parity = hash_get(p.path);
         
         SettingsObject.add(p.path, t.path);
         
         # if settings prompt, check target file hash.
-        if Settings["check-hash"]:
+        if SettingsObject.checkhash(p.meta):
             check = hash_get(t.path);
             
-            
             if parity == check:
-                printer.notice(  "      check-hash successful :-) {0} equals {1}".format(repr(parity), repr(check)) )
+                printer.notice(  "      checkhash successful :-) {0} equals {1}".format(repr(parity), repr(check)) )
             else:
-                printer.warning( "      check-hash failed :-/ {0} is not {1}".format(repr(parity), repr(check)) )
+                printer.warning( "      checkhash failed :-/ {0} is not {1}".format(repr(parity), repr(check)) )
                 attempts += 1;
                 continue;
         break;
@@ -135,7 +134,7 @@ def remove (pl, p, t):
         printer.warning("target is same as source  (use --force if you really wan't to do this)");
         return;
     
-    SettingsObject.rm(t.path);
+    SettingsObject.rm(t);
     return True;
 
 def fix_file(pl, p, t):
@@ -151,8 +150,10 @@ def fix_file(pl, p, t):
         printer.action("                as - %s"%(t.relativepath()));
         add(pl, p, t);
     
-    printer.action("removing insane file - %s"%(p.relativepath()));
-    SettingsObject.rm(p.path);
+    # since add might possibly move the file, check for existance
+    if p.isfile():
+        printer.action("removing insane file - %s"%(p.relativepath()));
+        SettingsObject.rm(p);
 
 def fix_dir(pl, p):
     printer, logger = pl;

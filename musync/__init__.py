@@ -61,21 +61,15 @@ def op_add(pl, p):
     if not p.isfile():
         printer.warning("not a file:", p.path);
         return;
-
-    # FIXME: remove when done
-    #if p.ext not in Settings["supported-ext"]:
-    #    raise WarningException("unsupported extension");
     
-    meta = musync.formats.open(p.path, **Settings["modify"]);
-    
-    if not meta:
+    if not p.meta:
         printer.warning("could not open metadata:", p.path);
         return;
     
     # this causes nice display of artist/album
-    printer.focus(meta);
+    printer.focus(p.meta);
     
-    t = db.build_target(p, meta);
+    t = db.build_target(p);
     # FIXME: need transcoding
     #if we are trying to transcode
     if Settings["transcode"]:
@@ -127,22 +121,16 @@ def op_remove(pl, p):
         
         return;
     
-    # FIXME: remove when done
-    #if p.ext not in Settings["supported-ext"]:
-    #    raise WarningException("unsupported extension: %s"%(p.path));
-    
     elif p.isfile():
-        meta = musync.formats.open(p.path, **Settings["modify"]);
-
-        if not meta:
+        if not p.meta:
             printer.warning("could not open metadata:", p.path);
             return;
         
         # this causes nice display of artist/album
-        printer.focus(meta);
-
+        printer.focus(p.meta);
+        
         # build target path
-        t = db.build_target(p, meta);
+        t = db.build_target(p);
         
         if musync.locker.islocked(t):
             printer.warning("locked:", t.relativepath());
@@ -170,7 +158,6 @@ def op_remove(pl, p):
 def op_fix(pl, p):
     """
     Operation to fix files in filestructure.
-    Opening fix-log as input file.
     @param p Path object to file being fixed.
     """
     
@@ -198,22 +185,17 @@ def op_fix(pl, p):
             return;
         
         # try to open, if you cannot, remove the files
-        try:
-            musync.formats.open(p.path, **Settings["modify"]);
-        except Exception, e:
-            printer.action("removing (%s): %s"%(p.path, str(e)));
-            Settings["rm"](p.path);
-            return;
+        if not p.meta:
+            printer.action("removing", p.path);
+            SettingsObject.rm(p.path);
 	  
     t = None;
     if p.isfile():
-        meta = musync.formats.open(p.path, **Settings["modify"]);
-        
-        if not meta:
+        if not p.meta:
             printer.warning("could not open metadata:", p.path);
             return;
 
-        t = db.build_target(p, meta);
+        t = db.build_target(p);
     else:
         t = p;
 
@@ -301,19 +283,17 @@ def op_inspect(pl, p):
         printer.warning("not a file:", p.path);
         return;
     
-    meta = musync.formats.open(p.path, **Settings["modify"]);
-
-    if not meta:
+    if not p.meta:
         printer.warning("could not open metadata:", p.path);
         return;
 
-    printer.boldnotice(meta.filename)
-    printer.blanknotice("artist:    ", repr(meta.artist))
-    printer.blanknotice("album:     ", repr(meta.album))
-    printer.blanknotice("title:     ", repr(meta.title))
-    printer.blanknotice("track:     ", repr(meta.track))
-    printer.blanknotice("year:      ", repr(meta.year))
-    printer.blanknotice("targetpath:", repr(SettingsObject.targetpath(meta)), "from", repr(Settings["targetpath"]));
+    printer.boldnotice(p.meta.filename)
+    printer.blanknotice("artist:    ", repr(p.meta.artist))
+    printer.blanknotice("album:     ", repr(p.meta.album))
+    printer.blanknotice("title:     ", repr(p.meta.title))
+    printer.blanknotice("track:     ", repr(p.meta.track))
+    printer.blanknotice("year:      ", repr(p.meta.year))
+    printer.blanknotice("targetpath:", repr(SettingsObject.targetpath(p)), "from", repr(Settings["targetpath"]));
 
 def main(pl, args):
     printer, logger = pl;
