@@ -55,7 +55,7 @@ def op_add(pl, p):
     printer, logger = pl;
     
     if p.isdir():
-        printer.notice("ignoring directory: %s"%(p.path));
+        printer.notice("ignoring directory:", p.path);
         return;
    
     if not p.isfile():
@@ -81,14 +81,14 @@ def op_add(pl, p):
         p, t = r;
     
     if musync.locker.islocked(t):
-        printer.warning("locked: %s"%(p.path));
+        printer.warning("locked:", p.path);
         return
 
     if Settings["pretend"]:
-        printer.notice("would add: %s"%(p.path));
-        printer.blanknotice("       as: %s"%(t.relativepath()));
+        printer.notice("would add:", p.path);
+        printer.blanknotice("       as:", t.relativepath());
     else:
-        printer.action("adding file: %s"%(t.relativepath()));
+        printer.action("adding file:", t.relativepath());
         db.add(pl, p, t);
     
     if Settings["lock"]:
@@ -104,18 +104,18 @@ def op_remove(pl, p):
     
     if p.isdir():
         if not p.inroot():
-            printer.warning("cannot remove directory (not in root): %s"%(p.path));
+            printer.warning("cannot remove directory (not in root):", p.path);
             return
         
         if not p.isempty():
-            printer.warning("cannot remove directory (not empty): %s"%(p.relativepath()));
+            printer.warning("cannot remove directory (not empty):", p.relativepath());
             return;
         
         if Settings["pretend"]:
-            printer.notice("would remove empty dir: %s"%(p.relativepath()));
+            printer.notice("would remove empty dir:", p.relativepath());
             return;
         else:
-            printer.action("removing directory: %s"%(p.relativepath()));
+            printer.action("removing directory:", p.relativepath());
             p.rmdir();
             return;
         
@@ -200,9 +200,9 @@ def op_fix(pl, p):
         t = p;
 
     if Settings["pretend"]:
-        printer.notice("would check: %s"%(p.path));
+        printer.notice("would check:", p.path);
         if t.isfile():
-            printer.blanknotice("         as: %s"%(t.relativepath()));
+            printer.blanknotice("         as:", t.relativepath());
     else:
         if p.isfile():
             db.fix_file(pl, p, t);
@@ -225,16 +225,16 @@ def op_lock(pl, p):
         return;
 
     if Settings["pretend"]:
-        printer.notice("would try to lock: %s"%(p.path));
+        printer.notice("would try to lock:", p.path);
         return;
     
     if p.isdir():
         musync.locker.lock(p);
-        printer.notice("dir has been locked: %s"%(p.path));
+        printer.notice("dir has been locked:", p.path);
         return;
     elif p.isfile():
         musync.locker.lock(p);
-        printer.notice("file has been locked: %s"%(p.path));
+        printer.notice("file has been locked:", p.path);
         return;
     
     printer.warning("cannot handle file:", p.path);
@@ -252,13 +252,13 @@ def op_unlock(pl, p):
         return;
 
     if Settings["pretend"]:
-        printer.notice("would try to unlock: %s"%(p.path));
+        printer.notice("would try to unlock:", p.path);
         return;
     
     if p.isfile():
         if musync.locker.islocked(p):
             musync.locker.unlock(p);
-            printer.notice("path has been unlocked: %s"%(p.path));
+            printer.notice("path has been unlocked:", p.path);
         elif musync.locker.parentislocked(p):
             tp = p.parent();
             printer.warning("parent is locked:", tp.path);
@@ -357,8 +357,8 @@ def main(pl, args):
         printer.boldnotice("# Inspecting files...");
         musync.op.operate(pl, args[1:], op_inspect);
     else:
-        raise FatalException("There is no operation called '%s'"%(args[0]));
-
+        raise FatalException("no such operation: " + args[0]);
+    
     if Settings["verbose"]:
         if Settings["pretend"]:
             printer.boldnotice("# Pretending done!");
@@ -414,20 +414,17 @@ def entrypoint():
         if Settings["debug"]:
             print traceback.format_exc();
     except Exception, e: # if this happens, something went really bad.
-        printer.error("Fatal Exception - %s"%(str(e)));
+        printer.error("Fatal Exception:", str(e));
         print traceback.format_exc();
-        printer.error("Something went very wrong, please report this error at %s"%(musync.opts.REPORT_ADDRESS));
+        printer.error("Something went very wrong, please report this error at:", musync.opts.REPORT_ADDRESS);
         sys.exit(1);
     except SystemExit, e: # interrupts and such
         sys.exit(e);
     
     if Settings["verbose"] and args is not None:
-        printer.boldnotice("handled %d files, %d dirs"%(musync.op.handled_files, musync.op.handled_dirs));
+        printer.boldnotice("handled", musync.op.handled_files, "files and", musync.op.handled_dirs, "directories");
     
     musync.hints.run();
-    
-    if logger and logger.haslogged:
-        print "Wrote to log - check: %(log)s"%{ 'log': Settings["log"] };
     
     # FIXME this might be unsafe 
     sys.exit(musync.sign.ret());
