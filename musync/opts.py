@@ -97,12 +97,18 @@ class LambdaEnviron:
     pass;
 
 class AppSession:
+    """
+    Global application session.
+    Should be common referenced in many methods.
+    """
+    
     def __init__(self, stream):
-        self.printer = musync.printer.TermCaps(self, stream);
         self.settings = dict(TemplateSettings);
         self.locker = None;
         self.args = list();
         self.lambdaenv = LambdaEnviron();
+        
+        self.printer = musync.printer.AppPrinter(self, stream);
         
         self.eval_env={
           'os': os,
@@ -409,7 +415,7 @@ def read(app, argv):
     # no config specified, use default.
     if not configuration:
         configuration = app.settings["default-config"];
-        app.printer.notice("[using 'default-config' since --config not found]");
+        app.printer.notice("using 'default-config' since --config not found");
     
     #To avoid curcular references.
     anti_circle = [];

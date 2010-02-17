@@ -1,3 +1,8 @@
+"""
+Custom library for lambda expressions.
+These functions are automatically imported into the 'm' module.
+"""
+
 import subprocess as sp
 import hashlib
 
