@@ -16,6 +16,9 @@ class OggVCommentMetaFile(meta.MetaFile):
         
         if self.track:
             self.track = int(self.track);
+        
+        if self.year:
+            self.year = int(self.year);
 
 class VCFLACMetaFile(meta.MetaFile):
     __translate__ = {
@@ -29,6 +32,6 @@ class VCFLACMetaFile(meta.MetaFile):
     
     def __init__(self, f, tags):
         meta.MetaFile.__init__(self, f, tags);
-
+        
         if self.track:
             self.track = int(self.track);

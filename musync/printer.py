@@ -134,7 +134,7 @@ class TermCaps:
         
         stream.write(fmt.format(**kw));
   
-    def warning(self, text):
+    def warning(self, *text):
         """
         Issues a warning to the user.
         Warnings are meant to happen when something screws up but the program can still complete execution.
@@ -142,9 +142,9 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("warning") or isSuppressed("all")):
             return;
 
-        self._write("[!] {red}{msg}{sgr0}\n", msg=text);
+        self._write("[!] {red}{msg}{sgr0}\n", msg=' '.join(text));
 
-    def error(self, text):
+    def error(self, *text):
         """
         Issues an error to the user.
         Errors should be foolowed by the stopped execution by the program.
@@ -152,9 +152,9 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("error") or isSuppressed("all")):
             return;
         
-        self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=text);
+        self._write("{bold}[exc] {red}{msg}{sgr0}\n", msg=' '.join(text));
 
-    def notice(self, text):
+    def notice(self, *text):
         """
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
@@ -162,21 +162,21 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("[:] {green}{msg}{sgr0}\n", msg=text);
+        self._write("[:] {green}{msg}{sgr0}\n", msg=' '.join(text));
 
-    def blanknotice(self, text):
+    def blanknotice(self, *text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("    {green}{msg}{sgr0}\n", msg=text);
+        self._write("    {green}{msg}{sgr0}\n", msg=' '.join(text));
 
-    def boldnotice(self, text):
+    def boldnotice(self, *text):
         if Settings["silent"] and (isSuppressed("notice") or isSuppressed("all")):
             return;
         
-        self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=text);
+        self._write("{bold}[:] {green}{msg}{sgr0}\n", msg=' '.join(text));
 
-    def action(self, text):
+    def action(self, *text):
         """
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
@@ -184,7 +184,7 @@ class TermCaps:
         if Settings["silent"] and (isSuppressed("action") or isSuppressed("all")):
             return;
         
-        self._write("[-] {magenta}{msg}{sgr0}\n", msg=text);
+        self._write("[-] {magenta}{msg}{sgr0}\n", msg=' '.join(text));
     
     def focus(self, meta):
         """

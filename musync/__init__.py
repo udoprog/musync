@@ -26,7 +26,7 @@ printer - handles everything that needs to be printed.
 
 import musync.printer; # printer module
 import musync.dbman as db;
-from musync.opts import Settings; # global settings
+from musync.opts import Settings, SettingsObject; # global settings
 from musync.errors import WarningException,FatalException; # exceptions
 import musync.opts; #options
 import musync.op;
@@ -59,13 +59,18 @@ def op_add(pl, p):
         return;
    
     if not p.isfile():
-        raise WarningException("not a file: %s"%(p.path));
+        printer.warning("not a file:", p.path);
+        return;
 
     # FIXME: remove when done
     #if p.ext not in Settings["supported-ext"]:
     #    raise WarningException("unsupported extension");
     
     meta = musync.formats.open(p.path, **Settings["modify"]);
+    
+    if not meta:
+        printer.warning("could not open metadata:", p.path);
+        return;
     
     # this causes nice display of artist/album
     printer.focus(meta);
@@ -79,7 +84,8 @@ def op_add(pl, p):
         (p, t) = db.transcode(p, t);
     
     if musync.locker.islocked(t):
-        raise WarningException("locked: %s"%(p.path));
+        printer.warning("locked: %s"%(p.path));
+        return
 
     if Settings["pretend"]:
         printer.notice("would add: %s"%(p.path));
@@ -101,47 +107,62 @@ def op_remove(pl, p):
     
     if p.isdir():
         if not p.inroot():
-            raise WarningException("cannot remove directory (not in root): %s"%(p.path));
+            printer.warning("cannot remove directory (not in root): %s"%(p.path));
+            return
         
         if not p.isempty():
-            raise WarningException("cannot remove directory (not empty): %s"%(p.relativepath()));
+            printer.warning("cannot remove directory (not empty): %s"%(p.relativepath()));
+            return;
         
         if Settings["pretend"]:
             printer.notice("would remove empty dir: %s"%(p.relativepath()));
+            return;
         else:
             printer.action("removing directory: %s"%(p.relativepath()));
             p.rmdir();
             return;
-
+        
+        return;
+    
     # FIXME: remove when done
     #if p.ext not in Settings["supported-ext"]:
     #    raise WarningException("unsupported extension: %s"%(p.path));
     
-    if not p.isfile():
-        raise WarningException("file not found: %s"%(p.path));
-    
-    meta = musync.formats.open(p.path, **Settings["modify"]);
-    
-    # this causes nice display of artist/album
-    printer.focus(meta);
+    elif p.isfile():
+        meta = musync.formats.open(p.path, **Settings["modify"]);
 
-    # build target path
-    t = db.build_target(p, meta);
-    
-    if musync.locker.islocked(t):
-        raise WarningException("locked: %s"%(t.relativepath()));
-    if musync.locker.parentislocked(t):
-        raise WarningException("locked: %s (parent)"%(t.relativepath()));
+        if not meta:
+            printer.warning("could not open metadata:", p.path);
+            return;
+        
+        # this causes nice display of artist/album
+        printer.focus(meta);
 
-    if not t.isfile():
-        raise WarningException("target file not found: %s"%(t.relativepath()));
+        # build target path
+        t = db.build_target(p, meta);
+        
+        if musync.locker.islocked(t):
+            printer.warning("locked:", t.relativepath());
+            return;
+        
+        if musync.locker.parentislocked(t):
+            printer.warning("locked:", t.relativepath(), "(parent)");
+            return;
+        
+        if not t.isfile():
+            printer.warning("target file not found:", t.relativepath());
+            return;
+        
+        if Settings["pretend"]:
+            printer.notice(     "would remove:", p.path);
+            printer.blanknotice("          as:", t.relativepath());
+        else:
+            printer.action("removing file:", t.relativepath());
+            db.remove(p, t);
+        
+        return;
     
-    if Settings["pretend"]:
-        printer.notice("would remove: %s"%(p.path));
-        printer.blanknotice("          as: %s"%(t.relativepath()));
-    else:
-        printer.action("removing file: %s"%(t.relativepath()));
-        db.remove(p, t);
+    printer.warning("cannot handle file:", p.path);
 
 def op_fix(pl, p):
     """
@@ -153,15 +174,20 @@ def op_fix(pl, p):
     printer, logger = pl;
     
     if not p.inroot():
-        raise WarningException("can only fix files in 'root'");
+        printer.warning("can only fix files in 'root'");
+        return;
     
-    if musync.locker.islocked(p):
-        raise WarningException("locked: %s"%(p.relativepath()));
-    if musync.locker.parentislocked(p):
-        raise WarningException("locked: %s (parent)"%(p.relativepath()));
+    if musync.locker.islocked(t):
+        printer.warning("locked:", t.relativepath());
+        return;
+    
+    if musync.locker.parentislocked(t):
+        printer.warning("locked:", t.relativepath(), "(parent)");
+        return;
 
     if not p.exists():
-        raise WarningException("path not found: %s"%(p.path));
+        printer.warning("path not found:", p.path);
+        return;
     
     if p.isfile():
         if p.path == musync.locker.get_lockpath():
@@ -175,10 +201,15 @@ def op_fix(pl, p):
             printer.action("removing (%s): %s"%(p.path, str(e)));
             Settings["rm"](p.path);
             return;
-	
+	  
     t = None;
     if p.isfile():
         meta = musync.formats.open(p.path, **Settings["modify"]);
+        
+        if not meta:
+            printer.warning("could not open metadata:", p.path);
+            return;
+
         t = db.build_target(p, meta);
     else:
         t = p;
@@ -205,20 +236,23 @@ def op_lock(pl, p):
     printer, logger = pl;
 
     if not p.inroot():
-        raise WarningException("can only lock files in 'root'");
+        printer.warning("can only lock files in 'root'");
+        return;
 
     if Settings["pretend"]:
         printer.notice("would try to lock: %s"%(p.path));
         return;
-
-    if p.isfile():
-        musync.locker.lock(p);
-        printer.notice("file has been locked: %s"%(p.path));
-    elif p.isdir():
-        if not p.inroot():
-            raise WarningException("cannot lock directories outside of root");
+    
+    if p.isdir():
         musync.locker.lock(p);
         printer.notice("dir has been locked: %s"%(p.path));
+        return;
+    elif p.isfile():
+        musync.locker.lock(p);
+        printer.notice("file has been locked: %s"%(p.path));
+        return;
+    
+    printer.warning("cannot handle file:", p.path);
 
 def op_unlock(pl, p):
     """
@@ -229,7 +263,8 @@ def op_unlock(pl, p):
     printer, logger = pl;
     
     if not p.inroot():
-        raise WarningException("can only unlock files in 'root'");
+        printer.warning("can only unlock files in 'root'");
+        return;
 
     if Settings["pretend"]:
         printer.notice("would try to unlock: %s"%(p.path));
@@ -241,26 +276,42 @@ def op_unlock(pl, p):
             printer.notice("path has been unlocked: %s"%(p.path));
         elif musync.locker.parentislocked(p):
             tp = p.parent();
-            raise WarningException("parent is locked: %s"%(tp.path));
+            printer.warning("parent is locked:", tp.path);
         else:
-            raise WarningException("path is not locked: %s"%(p.path));
+            printer.warning("path is not locked:", p.path);
+        return;
     elif p.isdir():
         musync.locker.unlock(p);
-        printer.notice("dir has been unlocked: %s"%(p.path));
+        printer.notice("dir has been unlocked:", p.path);
+        return;
+    
+    printer.warning("cannot handle file:", p.path);
 
-def op_name(pl, p):
+def op_inspect(pl, p):
     """
     give a friendly suggestion of how you would name a specific file.
     """
 
     printer, logger = pl;
 
-    if p.isfile():
-        meta = musync.formats.open(p.path, **Settings["modify"]);
-        print "format: ", Settings["format"](meta);
-        print "dir:    ", Settings["dir"](meta);
-    else:
-        raise WarningException("path is not a file");
+    if not p.isfile():
+        printer.warning("not a file:", p.path);
+        return;
+    
+    meta = musync.formats.open(p.path, **Settings["modify"]);
+
+    if not meta:
+        printer.warning("could not open metadata:", p.path);
+        return;
+
+    printer.boldnotice(meta.filename)
+    printer.blanknotice("artist:  ", meta.artist)
+    printer.blanknotice("album:   ", meta.album)
+    printer.blanknotice("title:   ", meta.artist)
+    printer.blanknotice("track:   ", str(meta.track))
+    printer.blanknotice("year:    ", str(meta.year))
+    printer.blanknotice("format:  ", SettingsObject.format(meta));
+    printer.blanknotice("dir:     ", SettingsObject.dir(meta));
 
 def main(pl, args):
     printer, logger = pl;
@@ -271,7 +322,10 @@ def main(pl, args):
         raise FatalException("To few arguments");
     
     #try to figure out operation.
-    if args[0] in ("rm","remove"):  #remove files from depos
+    if args[0] in ("help"):
+        print musync.opts.Usage();
+        return 0;
+    elif args[0] in ("rm","remove"):  #remove files from depos
 
         if Settings["verbose"]:
             if Settings["pretend"]:
@@ -315,11 +369,11 @@ def main(pl, args):
                 printer.boldnotice("# Pretending to unlock files...");
             else:
                 printer.boldnotice("# Unlocking files...");
-
+        
         musync.op.operate(pl, args[1:], op_unlock);
-    elif args[0] in ("name"):
-        printer.boldnotice("# Naming files...");
-        musync.op.operate(pl, args[1:], op_name);
+    elif args[0] in ("inspect"):
+        printer.boldnotice("# Inspecting files...");
+        musync.op.operate(pl, args[1:], op_inspect);
     else:
         raise FatalException("There is no operation called '%s'"%(args[0]));
 
@@ -361,7 +415,14 @@ def entrypoint():
         sys.exit(1);
         return;
     
-    logger = musync.printer.TermCaps(open(Settings["log"], "w"));
+    try:
+        logger = musync.printer.TermCaps(open(Settings["log"], "w"));
+    except IOError, e:
+        printer.warning("Could not initiate log:", str(e));
+        logger = printer;
+    except OSError, e:
+        printer.warning("Could not initiate log:", str(e));
+        logger = printer;
     
     try:
         if args is not None: # a nice way to go

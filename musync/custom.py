@@ -30,7 +30,9 @@ def filter(data, *args, **kw):
     """
     spawn a command and return value as boolean.
     """
-
+    if data is None:
+        return "";
+    
     kw["stdin"] = sp.PIPE;
     kw["stdout"] = sp.PIPE;
     
@@ -50,7 +52,17 @@ def filter(data, *args, **kw):
     return "";
 
 def md5sum(target):
-    f = open(target, "r")
+    """
+
+    """
+    
+    if target is None:
+        return None;
+    
+    try:
+        f = open(target, "r")
+    except OSError, e:
+        return None;
     
     m = hashlib.md5();
     
@@ -66,6 +78,9 @@ def ue(text):
     """
     Do not allow _any_ unicode characters to pass by here.
     """
+    if text is None:
+        return None;
+    
     if type(text) != unicode:
         d_text = str(text).decode("utf-8");
     else:
@@ -80,3 +95,7 @@ def ue(text):
             buildstr.append(c);
     
     return "".join(buildstr).encode("ascii");
+
+def inspect(o):
+    print "inspection:", type(o), repr(o);
+    return o;

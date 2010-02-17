@@ -400,7 +400,6 @@ def read(argv, pl):
             argv,
             "hepVRLsvCBfhl:r:c:M:T:d",
             [
-                "help",
                 "export",
                 "pretend",
                 "version",
@@ -423,16 +422,14 @@ def read(argv, pl):
             ]
        );
     except getopt.GetoptError, e:
-        raise FatalException("Unrecognised option '%s', try -h or --help."%( e.opt ));
+        raise FatalException("Unrecognised option '%s', try action 'help'."%( e.opt ));
     
     #keep to set default-config or not
     configuration = None;
     
     for opt, arg in opts:
         #loop through the arguments and do what we're supposed to do:
-        if opt in ("-h", "--help"):
-            return Usage();
-        elif opt in ("-e","--export"):
+        if opt in ("-e","--export"):
             Settings["export"] = True;
         elif opt in ("-p", "--pretend"):
             Settings["pretend"] = True;
@@ -521,9 +518,9 @@ def read(argv, pl):
     return args;
 
 def Usage ():
-    "prints usage information"
+    "returns usage information"
     
-    print """
+    return """
     musync - music syncing scripts
     Usage: musync [option(s)] <operation> [file1 [..]]
     
@@ -540,8 +537,6 @@ def Usage ():
                 for certain arguments.
             --version (or -V):
                 Echo version information and exit.
-            --help (or -h):
-                Show this text and exit.
             --force (or -f) 'force':
                 Force the current action. You might be prompted to force
                 certain actions.
@@ -611,7 +606,12 @@ def Usage ():
                 or fixed.
             unlock [source..]
                 Will unlock a locked file.
+            inspect [source..]
+                Inspect a number of files metadata.
+            help
+                Show the help text and exit.
         
+
         Files (defaults):
             log: (/tmp/musync.log)
                 Created at each run - empty when no problem.
