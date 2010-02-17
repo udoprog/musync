@@ -180,7 +180,7 @@ def transcode(pl, p, t):
     tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, os.getpid(), t_to);
     
     if (t.exists() or t.islink()) and not Settings["force"]:
-        printer.warninig("file already exists:", t.relativepath());
+        printer.warning("file already exists:", t.relativepath());
         return;
     
     if Settings["pretend"]:
