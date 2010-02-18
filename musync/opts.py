@@ -93,8 +93,15 @@ TemplateSettings = {
     "debug":            True,
 };
 
-class LambdaEnviron:
-    pass;
+class LambdaEnviron(dict):
+    def __setattr__(self, key, val):
+        self.__setitem__(key, val);
+    
+    def __getattr__(self, key):
+        return self.__getitem__(key);
+
+    def __hasattr__(self, key):
+        return self.has_key(key);
 
 class AppSession:
     """
@@ -106,16 +113,10 @@ class AppSession:
         self.settings = dict(TemplateSettings);
         self.locker = None;
         self.args = list();
-        self.lambdaenv = LambdaEnviron();
         
         self.printer = musync.printer.AppPrinter(self, stream);
         
-        self.eval_env={
-          'os': os,
-          'shutil': shutil,
-          'm': musync.custom,
-          's': self.lambdaenv,
-        };
+        self.lambdaenv=LambdaEnviron();
 
 ### This is changed with setup.py to suite environment ###
 #cfgfile="d:\\dump\\programs\\musync_x86\\musync.conf"
@@ -135,9 +136,45 @@ def settings_premanip(app):
     """
     
     # encoding everything as unicode strings.
-    for k in app.settings.keys():
-        if isinstance(app.settings[k], basestring) and not isinstance(app.settings[k], unicode):
-            app.settings[k] = app.settings[k].decode("utf-8");
+    for key in app.settings.keys():
+        val = app.settings[key];
+        
+        if isinstance(val, basestring):
+            if val.startswith("lambda "):
+                try:
+                    cmd = eval(val, app.lambdaenv);
+                except Exception, e:
+                    app.printer.error(key + ": " + str(e));
+                    err = True;
+                    continue;
+                
+                if type(cmd) != types.FunctionType:
+                    app.printer.error(key + ": is not a lambda function");
+                    err = True;
+                    continue;
+                
+                app.lambdaenv[key] = cmd;
+            elif val.startswith("import "):
+                import_stmt = val[6:].strip();
+
+                parts = import_stmt.split(".")[1:];
+                parts.reverse();
+                
+                imported_m = None;
+                
+                try:
+                    imported_m = __import__(import_stmt);
+                except ImportError, e:
+                    app.printer.error(key + ": " + str(e));
+                    err = True;
+                    continue;
+
+                while len(parts) > 0:
+                    imported_m = getattr(imported_m, parts.pop());
+                
+                app.lambdaenv[key] = imported_m;
+            elif not isinstance(app.settings, unicode):
+                app.settings[key] = val.decode("utf-8");
     
     # parse transcoding.
     if app.settings["transcode"]:
@@ -224,30 +261,9 @@ def settings_sanity(app):
             app.printer.error("key must exist:", key);
             err=True;
     
-    for key in app.settings:
-        val = app.settings[key];
-        
-        if val is None: # these should have been caught earlier.
-            continue;
-        
-        if isinstance(val, basestring) and "-" not in key and val.startswith("lambda"):
-            try:
-                cmd = eval(val, app.eval_env);
-            except Exception, e:
-                app.printer.error(key + ": " + str(e));
-                err = True;
-                continue;
-            
-            if type(cmd) != types.FunctionType:
-                app.printer.error(key + ": is not a lambda function");
-                err = True;
-                continue;
-            
-            app.lambdaenv.__dict__[key] = cmd;
-    
     # check that a specific set of lambda functions exist
-    for key in ["add", "rm", "filter", "hash", "targetpath", "checkhash"]:
-        if not hasattr(app.lambdaenv, key):
+    for key in ["add", "rm", "hash", "targetpath", "checkhash"]:
+        if not app.lambdaenv.has_key(key):
             app.printer.error("must be a lambda function:", key);
             err = True;
     
@@ -264,7 +280,7 @@ def settings_sanity(app):
                 err = True;
             else:
                 try:
-                    cmd = eval(app.settings[key], app.eval_env);
+                    cmd = eval(app.settings[key], app.lambdaenv);
                 except Exception, e:
                     app.printer.error(key + ": " + str(e));
                     err = True;

@@ -63,6 +63,9 @@ class FileReader(Reader):
     return r;
 
 class RuleLexer:
+  """
+  This is a fake lexer/parser to handle the simple syntax for unicode rule replacement.
+  """
   REGEXP='s'
   UNICODE='u'
 
@@ -125,8 +128,11 @@ class RuleLexer:
       rule = list();
       
       for i, group in enumerate(groups):
+        group = group.strip();
+
         if group == "":
-          return (False, reader.pos(), "invalid syntax: group number " + str(i) + " is blank");
+          # no harm in silently ignoring this
+          continue;
         
         m = self.unicode_token.match(group)
         if m is not None:
