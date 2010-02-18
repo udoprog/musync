@@ -64,10 +64,9 @@ class FileReader(Reader):
 
 class RuleLexer:
   REGEXP='s'
-  SINGLE='u'
-  GROUP='g'
+  UNICODE='u'
 
-  COMMANDS=[REGEXP, GROUP, SINGLE];
+  COMMANDS=[REGEXP, UNICODE];
   
   unicode_token = re.compile("^U\+([A-Fa-f0-9]+)$");
   unicodegroup_token = re.compile("^U\+([A-Fa-f0-9]+)-U\+([A-Fa-f0-9]+)$");
@@ -119,17 +118,30 @@ class RuleLexer:
         return (False, reader.pos(), "invalid syntax: expected separator '" + sep + "'")
       rule.append(reader.current());
     
-    if command == self.SINGLE:
-      m = self.unicode_token.match(''.join(rule))
-      if m is None: return (False, reader.pos(), "invalid syntax: rule is not a valid unicode token")
-      rule = long(m.group(1), 16);
-    elif command == self.GROUP:
-      m = self.unicodegroup_token.match(''.join(rule))
-      if m is None: return (False, reader.pos(), "invalid syntax: rule is not a valid unicode group token")
-      rule = (long(m.group(1), 16), long(m.group(2), 16));
+    rule = ''.join(rule);
+    
+    if command == self.UNICODE:
+      groups = rule.split(",");
+      rule = list();
+      
+      for i, group in enumerate(groups):
+        if group == "":
+          return (False, reader.pos(), "invalid syntax: group number " + str(i) + " is blank");
+        
+        m = self.unicode_token.match(group)
+        if m is not None:
+          rule.append(long(m.group(1), 16));
+          continue;
+        
+        m = self.unicodegroup_token.match(group)
+        if m is not None:
+          rule.append((long(m.group(1), 16), long(m.group(2), 16)));
+          continue;
+        
+        return (False, reader.pos(), "invalid syntax: could not match rule number " + str(i));
     elif command == self.REGEXP:
       try:
-        rule = re.compile(''.join(rule));
+        rule = re.compile(rule);
       except Exception, e:
         return (False, reader.pos(), "invalid syntax: " + str(e))
     
@@ -145,48 +157,63 @@ class RuleLexer:
     return (True, -1, None);
 
 class Rule:
-  def __init__(self, **kw):
-    self.debug = kw.pop("debug", False);
-
   def match(self, string):
     return [string];
 
 class RegexpRule(Rule):
-  def __init__(self, reobj, repl, **kw):
-    Rule.__init__(self, **kw)
+  def __init__(self, reobj, repl):
     self.reobj = reobj;
     self.repl = repl;
   
   def match(self, string):
     return self.reobj.sub(self.repl, string);
 
-class SingleRule(Rule):
-  def __init__(self, fr, to, **kw):
-    Rule.__init__(self, **kw)
-    self.fr = fr;
-    self.to = to;
 
-  def match(self, string, **kw):
-    res = list();
-    for c in iter(string):
-      if ord(c) == self.fr:
-        res.append(self.to);
-      else:
-        res.append(c);
-    return ''.join(res);
+class UnicodeMatch:
+  def matches(self, c):
+    return False;
 
-class GroupRule(Rule):
-  def __init__(self, frrange, to, **kw):
-    Rule.__init__(self, **kw)
-    self.frb, self.fre = frrange;
-    self.to = to;
+class RangeRule(UnicodeMatch):
+  def __init__(self, fromc, toc):
+    self.fromc = fromc;
+    self.toc = toc;
   
-  def match(self, string):
+  def matches(self, c):
+    return c >= self.fromc and c <= self.toc;
+
+class SingleRule(UnicodeMatch):
+  def __init__(self, matchc):
+    self.matchc = matchc;
+  
+  def matches(self, c):
+    return c == self.matchc;
+
+class GroupRule(UnicodeMatch):
+  def __init__(self):
+    self.group = list();
+  
+  def matches(self, c):
+    for g in self.group:
+      if g.matches(c):
+        return True;
+    return False;
+
+class UnicodeRule(Rule):
+  def __init__(self, ruleset, to):
+    self.to = to;
+    self.root = GroupRule();
+    
+    for rule in ruleset:
+      if type(rule) == long:
+        self.root.group.append(SingleRule(rule));
+      else:
+        self.root.group.append(RangeRule(rule[0], rule[1]));
+  
+  def match(self, string, **kw):
     res = list();
     
     for c in iter(string):
-      o = ord(c);
-      if o >= self.frb and o <= self.fre:
+      if self.root.matches(ord(c)):
         res.append(self.to);
       else:
         res.append(c);
@@ -202,11 +229,9 @@ class RuleBook:
     
     for rule in lexer.tree:
       if rule[0] == RuleLexer.REGEXP:
-        self.rules.append(RegexpRule(rule[1], rule[2], **kw));
-      elif rule[0] == RuleLexer.SINGLE:
-        self.rules.append(SingleRule(rule[1], rule[2], **kw));
-      elif rule[0] == RuleLexer.GROUP:
-        self.rules.append(GroupRule(rule[1], rule[2], **kw));
+        self.rules.append(RegexpRule(rule[1], rule[2]));
+      elif rule[0] == RuleLexer.UNICODE:
+        self.rules.append(UnicodeRule(rule[1], rule[2]));
   
   def match(self, string):
     for rule in self.rules:
@@ -214,10 +239,14 @@ class RuleBook:
     return string;
 
 if __name__ == "__main__":
+  import sys
   lexer = RuleLexer();
-  assert lexer.lexrule(u's_U+30_å_\n') == (True, -1, None);
-  assert lexer.lexrule(u'g_U+30-U+31_\n') == (True, -1, None);
-  assert lexer.lexrule(u'r_([a-z])+_\n') == (True, -1, None);
+  assert lexer.lexrule(u'u_U+63-U+64,U+65_a_') == (True, -1, None);
+  rulebook = RuleBook(lexer)
+  print lexer.tree
+  print rulebook.rules[0].root.group[1].matchc
+  print rulebook.match("cest")
+  sys.exit(0)
 
   print lexer.tree
   

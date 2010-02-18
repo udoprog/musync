@@ -104,7 +104,7 @@ def ue(text):
 
 cached_books = dict();
 
-def lexer(rb, string, **kw):
+def lexer(rb, string):
     global cached_books;
     
     if rb in cached_books:
@@ -118,7 +118,7 @@ def lexer(rb, string, **kw):
             (line, col), message =  error;
             print(rb + ":" + str(line) + ":" + str(col), message);
     
-    cached_books[rb] = rulelexer.RuleBook(lexer, **kw);
+    cached_books[rb] = rulelexer.RuleBook(lexer);
     return cached_books[rb].match(string);
 
 def inspect(o):
