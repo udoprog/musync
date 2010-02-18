@@ -5,6 +5,7 @@ These functions are automatically imported into the 'm' module.
 
 import subprocess as sp
 import hashlib
+import rulelexer
 
 def system(*args, **kw):
     """
@@ -100,6 +101,25 @@ def ue(text):
             buildstr.append(c);
     
     return "".join(buildstr).encode("ascii");
+
+cached_books = dict();
+
+def lexer(rb, string, **kw):
+    global cached_books;
+    
+    if rb in cached_books:
+        return cached_books[rb].match(string);
+    
+    lexer = rulelexer.RuleLexer();
+    lexer.lex(rulelexer.FileReader(open(rb, "r")));
+
+    if len(lexer.errors) > 0:
+        for error in lexer.errors:
+            (line, col), message =  error;
+            print(rb + ":" + str(line) + ":" + str(col), message);
+    
+    cached_books[rb] = rulelexer.RuleBook(lexer, **kw);
+    return cached_books[rb].match(string);
 
 def inspect(o):
     print "inspection:", type(o), repr(o);
