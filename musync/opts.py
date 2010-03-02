@@ -231,7 +231,9 @@ class AppSession:
             elif opt in ("-f", "--force"):
                 self.lambdaenv.force = lambda: True;
             elif opt in ("-c", "--config"):
-                configuration = lambda: arg;
+                conf = self.lambdaenv.configurations();
+                conf.extend(map(lambda a: a.strip(), arg.split(",")));
+                self.lambdaenv.configurations = lambda: conf;
             elif opt in ("-M", "--modify"):
                 self.lambdaenv.modify = lambda: parse_modify(self, self.lambdaenv.modify, arg);
             elif opt in ("-d", "--debug"):
@@ -240,6 +242,24 @@ class AppSession:
                 self.lambdaenv.root = lambda: arg;
             else:
               self.printer.error("unkown option:", opt);
+        
+        #
+        # Everytime default-config is set config must be rescanned.
+        #
+        anti_circle = [];
+        
+        for config in self.lambdaenv.configurations():
+            self.printer.notice("overlaying", config)
+
+            if config in anti_circle:
+                self.printer.error("Configuration has circular references, take a good look at key 'default-config'");
+                return;
+            
+            anti_circle.append(config);
+            
+            if not self.overlay_settings(cp, config):
+                self.printer.error("could not overlay section:", section);
+                return;
         
         if not os.path.isdir(self.lambdaenv.root()):
             self.printer.error("         root:", "Root library directory non existant, cannot continue.");
@@ -252,24 +272,7 @@ class AppSession:
                 self.printer.error("must be a lambda function:", key);
                 return;
         
-        #
-        # Everytime default-config is set config must be rescanned.
-        #
-        anti_circle = [];
-
-        for config in self.lambdaenv.configurations():
-            if config in anti_circle:
-                self.printer.error("Configuration has circular references, take a good look at key 'default-config'");
-                return;
-            
-            anti_circle.append(config);
-            
-            if not self.overlay_settings(cp, config):
-                self.printer.error("could not overlay section:", section);
-                return;
-        
         self.setup_locker(self.lambdaenv.lockdb());
-        self.lambdaenv.root();
         self.args = args;
         self.configured = True;
 

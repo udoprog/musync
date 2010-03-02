@@ -41,7 +41,7 @@ import musync.commons;
 import os;
 # Current artist and album in focus
 
-def build_target(app, p):
+def build_target(app, source):
     """
     builds a target for many of the functions in musync.dbman
     this is just a complex concatenation of directories and 
@@ -57,7 +57,7 @@ def build_target(app, p):
                  musync.meta.cleanmeta();
     """
     
-    return musync.commons.Path(app, os.path.join(app.lambdaenv.root(), app.lambdaenv.targetpath(p)));
+    return musync.commons.Path(app, os.path.join(app.lambdaenv.root(), app.lambdaenv.targetpath(source)));
 
 def hash_get(app, path):
     return app.lambdaenv.hash(path);
@@ -148,29 +148,32 @@ def fix_dir(app, p):
     p.rmdir();
 
 #transcoding
-def transcode(app, p, t):
-    if p.ext not in app.lambdaenv.transcode()[0]:
-         return (p, t);
+def transcode(app, source, target):
+    def handle(app, source_ext, target_ext, m, source, target):
+        source_path = source.path;
+        
+        source.ext = source.meta.ext = target_ext;
+        # this is our new target.
+        target = build_target(app, source);
+        
+        # this is the temporary file for the transcode.
+        tmp_file = os.path.join(musync.opts.tmp, str(os.getpid()), target.ext);
+        
+        if (target.exists() or target.islink()) and not app.lambdaenv.force():
+            app.printer.warning("file already exists:", target.relativepath());
+            return;
+        
+        if app.lambdaenv.pretend():
+            app.printer.action("would have transcoded", source_ext, "to", target_ext);
+        else:
+            app.printer.action("transcoding", source_ext, "to", target_ext);
+            m(source_path, tmp_file);
+        
+        # temp-file is the new source.
+        return (musync.commons.Path(app, tmp_file), target);
     
-    t_from = p.ext;
-    t_to = app.lambdaenv.transcode()[1];
-    # this is our new target.
-    t = musync.commons.Path(app, "%s/%s.%s"%(t.dir, t.basename, t_to));
-    
-    # this is the temporary file for the transcode.
-    tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, os.getpid(), t_to);
-    
-    if (t.exists() or t.islink()) and not app.lambdaenv.force():
-        app.printer.warning("file already exists:", t.relativepath());
-        return;
-    
-    if app.lambdaenv.pretend():
-        app.printer.action("would have transcoded", t_from, "to", to_to);
-    else:
-        app.printer.action("transcoding", t_from, "to", t_to);
-        app.lambdaenv[t_from + "-to-" + t_to](p.path, tmp_file);
-    
-    # temp-file is the new source.
-    p = musync.commons.Path(app, tmp_file);
-    return (p, t);
+    for source_ext, target_ext, m in app.lambdaenv.transcode():
+        if source_ext == source.ext:
+            return handle(app, source_ext, target_ext, m, source, target);
+        return (source, target);
 

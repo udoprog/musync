@@ -199,7 +199,7 @@ class AppPrinter(TermCaps):
         if self.is_suppressed("action") or self.is_suppressed("all"):
             return;
         
-        self._writeall("[-]", self.c.magenta, self._joinstrings(text), self.c.sgr0, "\n");
+        self._writeall("[-] ", self.c.magenta, self._joinstrings(text), self.c.sgr0, "\n");
     
     def _joinstrings(self, items):
         result = list();

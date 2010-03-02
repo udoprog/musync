@@ -43,245 +43,240 @@ import traceback;
 
 #global stop variable
 
-def op_add(app, p):
+def op_add(app, source):
     """
     Operation to add files to filestructure.
-    @param p Path object to file being added.
+    @param source Path object to file being added.
     """
 
-    if p.isdir():
-        app.printer.notice("ignoring directory:", p.path);
+    if source.isdir():
+        app.printer.notice("ignoring directory:", source.path);
         return;
    
-    if not p.isfile():
-        app.printer.warning("not a file:", p.path);
+    if not source.isfile():
+        app.printer.warning("not a file:", source.path);
         return;
     
-    if not p.meta:
-        app.printer.warning("could not open metadata:", p.path);
+    if not source.meta:
+        app.printer.warning("could not open metadata:", source.path);
         return;
     
     # this causes nice display of artist/album
-    app.printer.focus(p.meta);
+    app.printer.focus(source.meta);
     
-    t = db.build_target(app, p);
+    target = db.build_target(app, source);
     # FIXME: need transcoding
     #if we are trying to transcode
     if app.lambdaenv.transcode():
-        r = db.transcode(app, p, t);
-        
-        if not r:
-            return;
-        
-        p, t = r;
+        source, target = db.transcode(app, source, target);
     
-    if app.locker.islocked(t):
-        app.printer.warning("locked:", p.path);
+    if app.locker.islocked(target):
+        app.printer.warning("locked:", source.path);
         return
 
     if app.lambdaenv.pretend():
-        app.printer.notice("would add:", p.path);
-        app.printer.blanknotice("       as:", t.relativepath());
+        app.printer.notice("would add:", source.path);
+        app.printer.blanknotice("       as:", target.relativepath());
     else:
-        app.printer.action("adding file:", t.relativepath());
-        db.add(app, p, t);
+        app.printer.action("adding file:", target.relativepath());
+        db.add(app, source, target);
     
     if app.lambdaenv.lock():
-        op_lock(app, t);
+        op_lock(app, target);
 
-def op_remove(app, p):
+def op_remove(app, source):
     """
     Operation to remove files matching in filestructure.
-    @param p Path object to file being removed.
+    @param source Path object to file being removed.
     """
 
-    if p.isdir():
-        if not p.inroot():
-            app.printer.warning("cannot remove directory (not in root):", p.path);
+    if source.isdir():
+        if not source.inroot():
+            app.printer.warning("cannot remove directory (not in root):", source.path);
             return
         
-        if not p.isempty():
-            app.printer.warning("cannot remove directory (not empty):", p.relativepath());
+        if not source.isempty():
+            app.printer.warning("cannot remove directory (not empty):", source.relativepath());
             return;
         
         if app.lambdaenv.pretend():
-            app.printer.notice("would remove empty dir:", p.relativepath());
+            app.printer.notice("would remove empty dir:", source.relativepath());
             return;
         else:
-            app.printer.action("removing directory:", p.relativepath());
-            p.rmdir();
+            app.printer.action("removing directory:", source.relativepath());
+            source.rmdir();
             return;
         
         return;
     
-    elif p.isfile():
-        if not p.meta:
-            app.printer.warning("could not open metadata:", p.path);
+    elif source.isfile():
+        if not source.meta:
+            app.printer.warning("could not open metadata:", source.path);
             return;
         
         # this causes nice display of artist/album
-        app.printer.focus(p.meta);
+        app.printer.focus(source.meta);
         
         # build target path
-        t = db.build_target(app, p);
+        target = db.build_target(app, source);
         
-        if app.locker.islocked(t):
-            app.printer.warning("locked:", t.relativepath());
+        if app.locker.islocked(target):
+            app.printer.warning("locked:", target.relativepath());
             return;
         
-        if app.locker.parentislocked(t):
-            app.printer.warning("locked:", t.relativepath(), "(parent)");
+        if app.locker.parentislocked(target):
+            app.printer.warning("locked:", target.relativepath(), "(parent)");
             return;
         
-        if not t.isfile():
-            app.printer.warning("target file not found:", t.relativepath());
+        if not target.isfile():
+            app.printer.warning("target file not found:", target.relativepath());
             return;
         
         if app.lambdaenv.pretend():
-            app.printer.notice(     "would remove:", p.path);
-            app.printer.blanknotice("          as:", t.relativepath());
+            app.printer.notice(     "would remove:", source.path);
+            app.printer.blanknotice("          as:", target.relativepath());
         else:
-            app.printer.action("removing file:", t.relativepath());
-            db.remove(app, p, t);
+            app.printer.action("removing file:", target.relativepath());
+            db.remove(app, source, target);
         
         return;
     
-    app.printer.warning("cannot handle file:", p.path);
+    app.printer.warning("cannot handle file:", source.path);
 
-def op_fix(app, p):
+def op_fix(app, source):
     """
     Operation to fix files in filestructure.
-    @param p Path object to file being fixed.
+    @param source Path object to file being fixed.
     """
     
-    if not p.inroot():
+    if not source.inroot():
         app.printer.warning("can only fix files in 'root'");
         return;
     
-    if app.locker.islocked(p):
-        app.printer.warning("locked:", p.relativepath());
+    if app.locker.islocked(source):
+        app.printer.warning("locked:", source.relativepath());
         return;
     
-    if app.locker.parentislocked(p):
-        app.printer.warning("locked:", p.relativepath(), "(parent)");
+    if app.locker.parentislocked(source):
+        app.printer.warning("locked:", source.relativepath(), "(parent)");
         return;
 
-    if not p.exists():
-        app.printer.warning("path not found:", p.path);
+    if not source.exists():
+        app.printer.warning("path not found:", source.path);
         return;
     
-    if p.isfile():
-        if p.path == app.lambdaenv.lockdb():
+    if source.isfile():
+        if source.path == app.lambdaenv.lockdb():
             app.printer.action("ignoring lock-file");
             return;
         
         # try to open, if you cannot, remove the files
-        if not p.meta:
-            app.printer.action("removing", p.path);
-            app.lambdaenv.rm(p.path);
+        if not source.meta:
+            app.printer.action("removing", source.path);
+            app.lambdaenv.rm(source.path);
 	  
-    t = None;
-    if p.isfile():
-        if not p.meta:
-            app.printer.warning("could not open metadata:", p.path);
+    target = None;
+    if source.isfile():
+        if not source.meta:
+            app.printer.warning("could not open metadata:", source.path);
             return;
 
         # print nice focusing here aswell
-        app.printer.focus(p.meta);
+        app.printer.focus(source.meta);
         
-        t = db.build_target(app, p);
+        target = db.build_target(app, source);
     else:
-        t = p;
+        target = source;
 
     if app.lambdaenv.pretend():
-        app.printer.notice("would check:", p.path);
-        if t.isfile():
-            app.printer.blanknotice("         as:", t.relativepath());
+        app.printer.notice("would check:", source.path);
+        if target.isfile():
+            app.printer.blanknotice("         as:", target.relativepath());
     else:
-        if p.isfile():
-            db.fix_file(app, p, t);
-        elif p.isdir():
-            db.fix_dir(app, p);
+        if source.isfile():
+            db.fix_file(app, source, target);
+        elif source.isdir():
+            db.fix_dir(app, source);
     
     if app.lambdaenv.lock():
-        op_lock(app, t);
+        op_lock(app, target);
 
-def op_lock(app, p):
+def op_lock(app, source):
     """
     lock a file, making it unavailable to adding, removing and such.
-    @param p Path object to file being locked.
+    @param source Path object to file being locked.
     """
 
-    if not p.inroot():
+    if not source.inroot():
         app.printer.warning("can only lock files in 'root'");
         return;
 
     if app.lambdaenv.pretend():
-        app.printer.notice("would try to lock:", p.path);
+        app.printer.notice("would try to lock:", source.path);
         return;
     
-    if p.isdir():
-        app.locker.lock(p);
-        app.printer.notice("dir has been locked:", p.path);
+    if source.isdir():
+        app.locker.lock(source);
+        app.printer.notice("dir has been locked:", source.path);
         return;
-    elif p.isfile():
-        app.locker.lock(p);
-        app.printer.notice("file has been locked:", p.path);
+    elif source.isfile():
+        app.locker.lock(source);
+        app.printer.notice("file has been locked:", source.path);
         return;
     
-    app.printer.warning("cannot handle file:", p.path);
+    app.printer.warning("cannot handle file:", source.path);
 
-def op_unlock(app, p):
+def op_unlock(app, source):
     """
     Unlock a file, making it available to adding, removing and such.
-    @param p Path object to file being unlocked.
+    @param source Path object to file being unlocked.
     """
     
-    if not p.inroot():
+    if not source.inroot():
         app.printer.warning("can only unlock files in 'root'");
         return;
 
     if app.lambdaenv.pretend():
-        app.printer.notice("would try to unlock:", p.path);
+        app.printer.notice("would try to unlock:", source.path);
         return;
     
-    if p.isfile():
-        if app.locker.islocked(p):
-            app.locker.unlock(p);
-            app.printer.notice("path has been unlocked:", p.path);
-        elif app.locker.parentislocked(p):
-            tp = p.parent();
+    if source.isfile():
+        if app.locker.islocked(source):
+            app.locker.unlock(source);
+            app.printer.notice("path has been unlocked:", source.path);
+        elif app.locker.parentislocked(source):
+            tp = source.parent();
             app.printer.warning("parent is locked:", tp.path);
         else:
-            app.printer.warning("path is not locked:", p.path);
+            app.printer.warning("path is not locked:", source.path);
         return;
-    elif p.isdir():
-        app.locker.unlock(p);
-        app.printer.notice("dir has been unlocked:", p.path);
+    elif source.isdir():
+        app.locker.unlock(source);
+        app.printer.notice("dir has been unlocked:", source.path);
         return;
     
-    app.printer.warning("cannot handle file:", p.path);
+    app.printer.warning("cannot handle file:", source.path);
 
-def op_inspect(app, p):
+def op_inspect(app, source):
     """
     give a friendly suggestion of how you would name a specific file.
     """
     
-    if not p.isfile():
-        app.printer.warning("not a file:", p.path);
+    if not source.isfile():
+        app.printer.warning("not a file:", source.path);
         return;
     
-    if not p.meta:
-        app.printer.warning("could not open metadata:", p.path);
+    if not source.meta:
+        app.printer.warning("could not open metadata:", source.path);
         return;
 
-    app.printer.boldnotice(p.meta.filename)
-    app.printer.blanknotice("artist:    ", repr(p.meta.artist))
-    app.printer.blanknotice("album:     ", repr(p.meta.album))
-    app.printer.blanknotice("title:     ", repr(p.meta.title))
-    app.printer.blanknotice("track:     ", repr(p.meta.track))
-    app.printer.blanknotice("year:      ", repr(p.meta.year))
-    app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(p)), "from", app.settings.targetpath);
+    app.printer.boldnotice(source.meta.filename)
+    app.printer.blanknotice("artist:    ", repr(source.meta.artist))
+    app.printer.blanknotice("album:     ", repr(source.meta.album))
+    app.printer.blanknotice("title:     ", repr(source.meta.title))
+    app.printer.blanknotice("track:     ", repr(source.meta.track))
+    app.printer.blanknotice("year:      ", repr(source.meta.year))
+    app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(source)), "from", app.settings.targetpath);
 
 def main(app):
     if len(app.args) < 1:
