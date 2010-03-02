@@ -67,7 +67,7 @@ def op_add(app, p):
     t = db.build_target(app, p);
     # FIXME: need transcoding
     #if we are trying to transcode
-    if app.settings["transcode"]:
+    if app.lambdaenv.transcode():
         r = db.transcode(app, p, t);
         
         if not r:
@@ -79,14 +79,14 @@ def op_add(app, p):
         app.printer.warning("locked:", p.path);
         return
 
-    if app.settings["pretend"]:
+    if app.lambdaenv.pretend():
         app.printer.notice("would add:", p.path);
         app.printer.blanknotice("       as:", t.relativepath());
     else:
         app.printer.action("adding file:", t.relativepath());
         db.add(app, p, t);
     
-    if app.settings["lock"]:
+    if app.lambdaenv.lock():
         op_lock(app, t);
 
 def op_remove(app, p):
@@ -104,7 +104,7 @@ def op_remove(app, p):
             app.printer.warning("cannot remove directory (not empty):", p.relativepath());
             return;
         
-        if app.settings["pretend"]:
+        if app.lambdaenv.pretend():
             app.printer.notice("would remove empty dir:", p.relativepath());
             return;
         else:
@@ -137,7 +137,7 @@ def op_remove(app, p):
             app.printer.warning("target file not found:", t.relativepath());
             return;
         
-        if app.settings["pretend"]:
+        if app.lambdaenv.pretend():
             app.printer.notice(     "would remove:", p.path);
             app.printer.blanknotice("          as:", t.relativepath());
         else:
@@ -171,7 +171,7 @@ def op_fix(app, p):
         return;
     
     if p.isfile():
-        if p.path == app.locker.get_lockpath():
+        if p.path == app.lambdaenv.lockdb():
             app.printer.action("ignoring lock-file");
             return;
         
@@ -190,7 +190,7 @@ def op_fix(app, p):
     else:
         t = p;
 
-    if app.settings["pretend"]:
+    if app.lambdaenv.pretend():
         app.printer.notice("would check:", p.path);
         if t.isfile():
             app.printer.blanknotice("         as:", t.relativepath());
@@ -200,7 +200,7 @@ def op_fix(app, p):
         elif p.isdir():
             db.fix_dir(app, p);
     
-    if app.settings["lock"]:
+    if app.lambdaenv.lock():
         op_lock(app, t);
 
 def op_lock(app, p):
@@ -213,7 +213,7 @@ def op_lock(app, p):
         app.printer.warning("can only lock files in 'root'");
         return;
 
-    if app.settings["pretend"]:
+    if app.lambdaenv.pretend():
         app.printer.notice("would try to lock:", p.path);
         return;
     
@@ -238,7 +238,7 @@ def op_unlock(app, p):
         app.printer.warning("can only unlock files in 'root'");
         return;
 
-    if app.settings["pretend"]:
+    if app.lambdaenv.pretend():
         app.printer.notice("would try to unlock:", p.path);
         return;
     
@@ -278,72 +278,71 @@ def op_inspect(app, p):
     app.printer.blanknotice("title:     ", repr(p.meta.title))
     app.printer.blanknotice("track:     ", repr(p.meta.track))
     app.printer.blanknotice("year:      ", repr(p.meta.year))
-    app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(p)), "from", repr(app.settings["targetpath"]));
+    app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(p)), "from", app.settings.targetpath);
 
 def main(app):
-    args = app.args;
-    
-    if len(args) < 1:
+    if len(app.args) < 1:
         raise musync.errors.FatalException("To few arguments");
     
     #try to figure out operation.
-    if args[0] in ("help"):
+    if app.args[0] in ("help"):
         print musync.opts.Usage();
         return 0;
-    elif args[0] in ("rm","remove"):  #remove files from depos
+    
+    elif app.args[0] in ("rm","remove"):  #remove files from depos
 
-        if app.settings["verbose"]:
-            if app.settings["pretend"]:
+        if app.lambdaenv.verbose():
+            if app.lambdaenv.pretend():
                 app.printer.boldnotice("# Pretending to remove files...");
             else:
                 app.printer.boldnotice("# Removing files...");
         
         musync.op.operate(app, op_remove);
-    elif args[0] in ("add","sync"): #syncronize files with musicdb
+    elif app.args[0] in ("add","sync"): #syncronize files with musicdb
 
-        if app.settings["verbose"]:
-            if app.settings["pretend"]:
+        if app.lambdaenv.verbose():
+            if app.lambdaenv.pretend():
                 app.printer.boldnotice("# Pretending to add files...");
             else:
                 app.printer.boldnotice("# Adding files...");
             
         musync.op.operate(app, op_add);
-    elif args[0] in ("fix"): #syncronize files with musicdb
+    elif app.args[0] in ("fix"): #syncronize files with musicdb
 
-        if app.settings["verbose"]:
-            if app.settings["pretend"]:
+        if app.lambdaenv.verbose():
+            if app.lambdaenv.pretend():
                 app.printer.boldnotice("# Pretending to fix files...");
             else:
                 app.printer.boldnotice("# Fixing files...");
 
         # make sure all paths are referenced relative to root.
         musync.op.operate(app, op_fix);
-    elif args[0] in ("lock"):
+    elif app.args[0] in ("lock"):
 
-        if app.settings["verbose"]:
-            if app.settings["pretend"]:
+        if app.lambdaenv.verbose():
+            if app.lambdaenv.pretend():
                 app.printer.boldnotice("# Pretending to lock files...");
             else:
                 app.printer.boldnotice("# Locking files...");
         
         musync.op.operate(app, op_lock);
-    elif args[0] in ("unlock"):
+    elif app.args[0] in ("unlock"):
 
-        if app.settings["verbose"]:
-            if app.settings["pretend"]:
+        if app.lambdaenv.verbose():
+            if app.lambdaenv.pretend():
                 app.printer.boldnotice("# Pretending to unlock files...");
             else:
                 app.printer.boldnotice("# Unlocking files...");
         
         musync.op.operate(app, op_unlock);
-    elif args[0] in ("inspect"):
+    elif app.args[0] in ("inspect"):
         app.printer.boldnotice("# Inspecting files...");
         musync.op.operate(app, op_inspect);
     else:
-        raise musync.errors.FatalException("no such operation: " + args[0]);
+        raise musync.errors.FatalException("no such operation: " + app.args[0]);
     
-    if app.settings["verbose"]:
-        if app.settings["pretend"]:
+    if app.lambdaenv.verbose():
+        if app.lambdaenv.pretend():
             app.printer.boldnotice("# Pretending done!");
         else:
             app.printer.boldnotice("# Done!");
@@ -366,32 +365,21 @@ except KeyboardInterrupt:
 
 # This block ensures that ^C interrupts are handled quietly.
 def entrypoint():
-    app = musync.opts.AppSession(sys.stdout);
-    
     try:
-        app = musync.opts.read(app, sys.argv[1:]);
+        app = musync.opts.AppSession(sys.argv[1:], sys.stdout);
     except Exception, e:
-        app.printer.error(str(e));
-        if app.settings["debug"]:
-            print traceback.format_exc();
+        print traceback.format_exc();
         sys.exit(1);
         return;
-    
-    #try:
-    #    logger = musync.printer.TermCaps(app, open(app.settings["log"], "w"));
-    #except IOError, e:
-    #    app.printer.warning("Could not initiate log:", str(e));
-    #    logger = app.printer;
-    #except OSError, e:
-    #    app.printer.warning("Could not initiate log:", str(e));
-    #    logger = app.printer;
+
+    if not app.configured:
+        sys.exit(1);
     
     try:
-        if app.args is not None:
-            main(app);
+        main(app);
     except musync.errors.FatalException, e: # break execution exception.
         app.printer.error((str(e)));
-        if app.settings["debug"]:
+        if app.lambdaenv.debug:
             print traceback.format_exc();
     except Exception, e: # if this happens, something went really bad.
         app.printer.error("Fatal Exception:", str(e));
@@ -401,10 +389,10 @@ def entrypoint():
     except SystemExit, e: # interrupts and such
         sys.exit(e);
     
-    if app.settings["verbose"] and args is not None:
+    if app.lambdaenv.verbose:
         app.printer.boldnotice("handled", musync.op.handled_files, "files and", musync.op.handled_dirs, "directories");
     
-    musync.hints.run(app);
+    #musync.hints.run(app);
     
     # FIXME this might be unsafe 
     sys.exit(musync.sign.ret());

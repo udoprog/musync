@@ -17,24 +17,21 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from musync.errors import WarningException, FatalException; # exceptions
 import string;
 import os.path;
 
 class LockFileDB:
-    def __init__(self, root, lock_file=".lock"):
+    def __init__(self, app, lock_file):
+        self.app = app;
         self.changed = False;
         self.removed = False;
-        self.root = root;
         self.lock_file = lock_file;
-
-        lockpath=self.get_lockpath();
-
-        if not os.path.isfile(lockpath):
-            f = open(lockpath, "w");
+        
+        if not os.path.isfile(self.lock_file):
+            f = open(self.lock_file, "w");
             f.close();
         
-        f = open(lockpath, "r");
+        f = open(self.lock_file, "r");
         self.DB = [x.strip(string.whitespace) for x in f.readlines()];
         f.close();
         
@@ -42,85 +39,59 @@ class LockFileDB:
 
     def unlock(self, path):
         if not self.islocked(path):
-            raise WarningException("%s - is not locked"%(path.path));
-
+            self.app.notice("is not locked:", path.path);
+            return False;
+        
         if not path.inroot():
-            raise WarningException("%s - is not in root"%(path.path));
+            self.app.warning("is not in root:", path.path);
+            return False;
         
-        relpath=path.relativepath();
-        
-        if not relpath:
-            raise WarningException("%s - failed to get relative path"%(path.path));
-        
-        self.DB.remove(relpath);
+        self.DB.remove(path.relativepath());
         self.changed = True;
         self.removed = True;
 
     def lock(self, path):
         if self.islocked(path):
-            raise WarningException("%s - is already locked"%(path.path));
+            self.app.notice("is already locked:", path.path);
+            return False;
+
         if self.parentislocked(path):
-            raise WarningException("%s - is already locked (parent)"%(path.path));
+            self.app.notice("is already locked (parent):", path.path);
+            return False;
+        
         if not path.inroot():
-            raise WarningException("%s - is not in root"%(path.path));
-
-        relpath=path.relativepath();
-        if not relpath:
-            raise WarningException("%s - failed to get relativepath"%(path.path));
-
-        self.DB_NEWS.append(relpath + "\n");
+            self.app.warning("is not in root:", path.path);
+            return False;
+        
+        self.DB_NEWS.append(path.relativepath() + "\n");
         self.changed = True;
 
     def islocked(self, path):
-        relpath=path.relativepath();
-        
-        if not relpath:
-            raise WarningException("%s - failed to get relativepath"%(path.path));
-
-        if relpath in self.DB:
+        if path.relativepath() in self.DB:
             return True;
         else:
             return False;
-
+    
     def parentislocked(self, path):
-        p = path.parent();
-        
-        if p.isdir() and p.inroot():
-            relpath=p.relativepath();
-            if not relpath:
-                raise WarningException("%s - failed to get relativepath"%(path.path));
-            if relpath in self.DB:
-                return True;
+        if path.parent().relativepath() in self.DB:
+            return True;
         
         return False;
     
-    def sanity_chk(self):
-        if self.root is None:
-            raise FatalException("locker.root is None");
-        
-        if self.lock_file is None:
-            raise FatalException("locker.lock_file is None");
-
     def stop(self):
         if self.changed:
             # this will trigger writing if database has been changed.
-            lockpath=self.get_lockpath();
-
-            if not os.path.isfile(lockpath):
-                f = open(lockpath, "w");
+            if not os.path.isfile(self.lock_path):
+                f = open(self.lock_path, "w");
                 f.close();
             
             if self.removed:
-                f = open(lockpath, "w");
+                f = open(self.lock_path, "w");
                 for p in self.DB:
                     f.writelines(p);
                     f.write("\n");
                 f.close();
             else:
-                f = open(lockpath, "a");
+                f = open(self.lock_path, "a");
                 f.writelines(self.DB_NEWS);
                 f.close();
-
-    def get_lockpath(self):
-        self.sanity_chk();
-        return os.path.join(self.root, self.lock_file);

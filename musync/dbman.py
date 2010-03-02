@@ -57,7 +57,7 @@ def build_target(app, p):
                  musync.meta.cleanmeta();
     """
     
-    return musync.commons.Path(app, os.path.join(app.settings["root"], app.lambdaenv.targetpath(p)));
+    return musync.commons.Path(app, os.path.join(app.lambdaenv.root(), app.lambdaenv.targetpath(p)));
 
 def hash_get(app, path):
     return app.lambdaenv.hash(path);
@@ -76,7 +76,7 @@ def add(app, p, t):
         app.printer.warning("source and target file same");
         return;
     
-    if (t.exists() or t.islink()) and not app.settings["force"]:
+    if (t.exists() or t.islink()) and not app.lambdaenv.force():
         app.printer.warning("file already exists:", t.relativepath());
         return;
     
@@ -116,7 +116,7 @@ def add(app, p, t):
 def remove (app, p, t):
     "removes a file from the database"
     
-    if t.path == p.path and not app.settings["force"]:
+    if t.path == p.path and not app.lambdaenv.force():
         app.printer.warning("target is same as source  (use --force if you really wan't to do this)");
         return;
     
@@ -149,26 +149,26 @@ def fix_dir(app, p):
 
 #transcoding
 def transcode(app, p, t):
-    if p.ext not in app.settings["transcode"][0]:
+    if p.ext not in app.lambdaenv.transcode()[0]:
          return (p, t);
     
     t_from = p.ext;
-    t_to = app.settings["transcode"][1];
+    t_to = app.lambdaenv.transcode()[1];
     # this is our new target.
     t = musync.commons.Path(app, "%s/%s.%s"%(t.dir, t.basename, t_to));
     
     # this is the temporary file for the transcode.
     tmp_file = "%s/musync.trans.%s.%s"%(musync.opts.tmp, os.getpid(), t_to);
     
-    if (t.exists() or t.islink()) and not app.settings["force"]:
+    if (t.exists() or t.islink()) and not app.lambdaenv.force():
         app.printer.warning("file already exists:", t.relativepath());
         return;
     
-    if app.settings["pretend"]:
+    if app.lambdaenv.pretend():
         app.printer.action("would have transcoded", t_from, "to", to_to);
     else:
         app.printer.action("transcoding", t_from, "to", t_to);
-        app.settings[t_from + "-to-" + t_to](p.path, tmp_file);
+        app.lambdaenv[t_from + "-to-" + t_to](p.path, tmp_file);
     
     # temp-file is the new source.
     p = musync.commons.Path(app, tmp_file);

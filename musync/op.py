@@ -50,7 +50,7 @@ def operate(app, call, inroot=False):
             call(app, p);
         except WarningException, e: # WarningExceptions are just pritned, then move of to next file.
             app.printer.warning( str(e) );
-#    if app.settings["progress"]: ## run with progress.
+#    if app.lambdaenv.progress(): ## run with progress.
 #        list=[];
 #        for p in readargs(args, inroot):
 #            list.append(p);
@@ -110,14 +110,14 @@ def readpaths(app, path, inroot):
     """
     global handled_dirs, handled_files;
     if inroot:
-        path = app.settings["root"] + "/" + path;
+        path = app.lambdaenv.root() + "/" + path;
 
     p = musync.commons.Path(app, path);
 
     if p.isfile():
         handled_files += 1;
     elif p.isdir():
-        if app.settings["recursive"]:
+        if app.lambdaenv.recursive():
             for f in p.children():
                 for t in readpaths(app, f.path, inroot):
                     yield t;

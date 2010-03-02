@@ -148,14 +148,13 @@ class AppPrinter(TermCaps):
     def __init__(self, app, stream):
         self.app = app;
         TermCaps.__init__(self, stream);
-        self._suppressed = map(lambda s: s.strip().lower(), self.app.settings.get("suppressed", "").split(','));
     
     def warning(self, *text):
         """
         Issues a warning to the user.
         Warnings are meant to happen when something screws up but the program can still complete execution.
         """
-        if self.app.settings["silent"] and (self.is_suppressed("warning") or self.is_suppressed("all")):
+        if self.is_suppressed("warning") or self.is_suppressed("all"):
             return;
         
         self._writeall("[!] ", self.c.red, self._joinstrings(text), self.c.sgr0, "\n");
@@ -165,7 +164,7 @@ class AppPrinter(TermCaps):
         Issues an error to the user.
         Errors should be foolowed by the stopped execution by the program.
         """
-        if self.app.settings["silent"] and (self.is_suppressed("error") or self.is_suppressed("all")):
+        if self.is_suppressed("error") or self.is_suppressed("all"):
             return;
         
         self._writeall(self.c.bold, "[e] ", self.c.red, self._joinstrings(text), self.c.sgr0, "\n");
@@ -175,21 +174,20 @@ class AppPrinter(TermCaps):
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
         """
-        if self.app.settings["silent"] and (self.is_suppressed("notice") or self.is_suppressed("all")):
+        if self.is_suppressed("notice") or self.is_suppressed("all"):
             return;
         
         self._writeall("[:] ", self.c.green, self._joinstrings(text), self.c.sgr0, "\n");
     
     def blanknotice(self, *text):
-        if self.app.settings["silent"] and (self.is_suppressed("notice") or self.is_suppressed("all")):
+        if self.is_suppressed("notice") or self.is_suppressed("all"):
             return;
         
         self._writeall("    ", self.c.green, self._joinstrings(text), self.c.sgr0, "\n");
     
     def boldnotice(self, *text):
-        if self.app.settings["silent"] and (self.is_suppressed("notice") or self.is_suppressed("all")):
+        if self.is_suppressed("notice") or self.is_suppressed("all"):
             return;
-        
         
         self._writeall(self.c.bold, "[:] ", self.c.green, self._joinstrings(text), self.c.sgr0, "\n");
     
@@ -198,10 +196,10 @@ class AppPrinter(TermCaps):
         Issues an notice to the user.
         Notices are to be used sparsely, only to give information to the user that can be necessary.
         """
-        if self.app.settings["silent"] and (self.is_suppressed("action") or self.is_suppressed("all")):
+        if self.is_suppressed("action") or self.is_suppressed("all"):
             return;
         
-        self._write("[-]", self.c.magenta, self._joinstrings(text), self.c.sgr0, "\n");
+        self._writeall("[-]", self.c.magenta, self._joinstrings(text), self.c.sgr0, "\n");
     
     def _joinstrings(self, items):
         result = list();
@@ -232,9 +230,12 @@ class AppPrinter(TermCaps):
         self.focused["title"] = meta.title;
         self.focused["track"] = meta.track;
     
-    def is_suppressed(type):
+    def is_suppressed(self, type):
         "Checkes weither message type currently is suppressed trough configuration."
-        if type.lower() in self._suppressed:
-            return True;
+        if not self.app.configured:
+            return False;
+        
+        if self.app.lambdaenv.silent() and type.lower() in self.app.lambdaenv.suppressed():
+              return True;
         
         return False;
