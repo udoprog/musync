@@ -1,0 +1,11 @@
+s/\s/_/
+u/U+A0/_/
+u/U+2020/cross/
+u/U+E4-U+E5/a/
+u/U+C0-U+C5/A/
+u/U+C8-U+CB/E/
+u/U+D2-U+D6/O/
+u/U+F0,U+F2-U+F6/o/
+s/[:()\[\]]//
+s/^_+//
+s/_+$//

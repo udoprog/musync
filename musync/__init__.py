@@ -186,6 +186,9 @@ def op_fix(app, p):
             app.printer.warning("could not open metadata:", p.path);
             return;
 
+        # print nice focusing here aswell
+        app.printer.focus(p.meta);
+        
         t = db.build_target(app, p);
     else:
         t = p;
