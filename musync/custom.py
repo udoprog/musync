@@ -6,6 +6,7 @@ These functions are automatically imported into the 'm' module.
 import subprocess as sp
 import hashlib
 import rulelexer
+import types
 
 def system(*args, **kw):
     """
@@ -132,20 +133,17 @@ def case(mv, *args, **kw):
         
         kv, v = a;
         
-        if mv == kv:
-            if type(v) == types.FunctionType:
-                return v();
-            else:
+        if isinstance(kv, list) or isinstance(kv, tuple):
+            if mv in kv:
                 return v;
+        elif mv == kv:
+            return v;
 
     for kv in kw:
         v = kw[kv];
         
         if mv == kv:
-            if type(v) == types.FunctionType:
-                return v();
-            else:
-                return v;
+            return v;
     
     return None;
 

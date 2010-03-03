@@ -76,7 +76,7 @@ LambdaTemplate = {
     "debug": lambda: True,
     "configurations": lambda: [],
     "lockdb": lambda: None,
-    "transcode": lambda: False,
+    "transcode": None,
 };
 
 class AppSession:

@@ -67,7 +67,7 @@ def op_add(app, source):
     target = db.build_target(app, source);
     # FIXME: need transcoding
     #if we are trying to transcode
-    if app.lambdaenv.transcode():
+    if app.lambdaenv.transcode is not None:
         source, target = db.transcode(app, source, target);
     
     if app.locker.islocked(target):
@@ -377,7 +377,7 @@ def entrypoint():
         main(app);
     except musync.errors.FatalException, e: # break execution exception.
         app.printer.error((str(e)));
-        if app.lambdaenv.debug:
+        if app.lambdaenv.debug():
             print traceback.format_exc();
     except Exception, e: # if this happens, something went really bad.
         app.printer.error("Fatal Exception:", str(e));
@@ -387,7 +387,7 @@ def entrypoint():
     except SystemExit, e: # interrupts and such
         sys.exit(e);
     
-    if app.lambdaenv.verbose:
+    if app.lambdaenv.verbose():
         app.printer.boldnotice("handled", musync.op.handled_files, "files and", musync.op.handled_dirs, "directories");
     
     #musync.hints.run(app);
