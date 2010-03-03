@@ -68,7 +68,12 @@ def op_add(app, source):
     # FIXME: need transcoding
     #if we are trying to transcode
     if app.lambdaenv.transcode is not None:
-        source, target = db.transcode(app, source, target);
+        r = db.transcode(app, source, target);
+        
+        if r is None:
+            return;
+        
+        source, target = r;
     
     if app.locker.islocked(target):
         app.printer.warning("locked:", source.path);

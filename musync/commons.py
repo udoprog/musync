@@ -34,30 +34,45 @@ class Path:
     to represent different locations on a filesystem and
     aid in simplifying the code at _many_ locations.
     """
-
-    path=None;
-    ext=None;
-    dir=None;
-    basename=None;
-
-    def __init__(self, app, path, meta=None):
+    
+    def __init__(self, app, path, **kw):
         """
         initiate variables.
         """
 
         self.app = app;
-        self.path = os.path.abspath(path);
-        self.dir = os.path.dirname(self.path);
-        self.ext = os.path.splitext(self.path)[1].lower();
-        self.basename = self.path[len(self.dir) + 1:-len(self.ext)];
         
-        if len(self.ext) > 0:
-            self.ext = self.ext[1:];
+        self._path = os.path.abspath(path);
+        
+        if "dir" in kw:
+            self.dir = kw.get("dir");
+        else:
+            self.dir = os.path.dirname(self._path);
+        
+        if "ext" in kw:
+            self.ext = kw.get("ext");
+        else:
+            self.ext = os.path.splitext(self._path)[1].lower();
+            if len(self.ext) > 0 and self.ext[0] == ".":
+                self.ext = self.ext[1:];
+        
+        if "basename" in kw:
+            self.basename = kw.get("basename");
+        else:
+            self.basename = os.path.splitext(self._path)[0];
         
         # open metadata if this is a file
         # if this is None, it's an indication that the file is not supported.
         if self.isfile():
             self.meta = musync.formats.open(self.path, **self.app.lambdaenv.modify());
+    
+    def get_path(self):
+        if self.ext:
+            return os.path.join(self.dir, self.basename) + "." + self.ext;
+        else:
+            return os.path.join(self.dir, self.basename);
+    
+    path = property(get_path)
     
     def isfile(self):
         return os.path.isfile(self.path);
@@ -136,5 +151,7 @@ class Path:
         """
         if not self.inroot():
             return False;
+        
         l = len(self.app.lambdaenv.root());
+        
         return self.path[l+1:];
