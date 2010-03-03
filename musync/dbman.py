@@ -172,8 +172,9 @@ def transcode(app, source, target):
         # temp-file is the new source.
         return (musync.commons.Path(app, tmp_file), target);
     
-    for source_ext, target_ext, m in app.lambdaenv.transcode():
-        if source_ext == source.ext:
-            return handle(app, source_ext, target_ext, m, source, target);
-        return (source, target);
+    m = app.lambdaenv.transcode(source);
 
+    if not m:
+        return (source, target);
+    
+    return handle(source.ext, target_ext, m, source, target);

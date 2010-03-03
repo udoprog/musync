@@ -90,7 +90,7 @@ class AppSession:
         Overlay all settings from a specific section in the configuration file.
         """
         if not parser.has_section(sect):
-            self.error("section does not exist: " + sect);
+            self.printer.error("section does not exist: " + sect);
             return False;
         
         ok = True;
@@ -148,11 +148,23 @@ class AppSession:
     def read_argv(self, argv):
         cp = RawConfigParser();
         
+        noconfig = True;
+        
+        configuration_files = map(lambda cfgfile: os.path.expanduser(os.path.join(*cfgfile)), cfgfiles);
+
         # not using readfiles since doesn't work under windows
-        for cfg in map(lambda cfgfile: os.path.expanduser(os.path.join(*cfgfile)), cfgfiles):
+        for cfg in configuration_files:
             if not os.path.isfile(cfg):
                 continue;
+            
+            noconfig = False;
             cp.readfp(open(cfg));
+
+        if noconfig:
+            self.printer.error("no configuration files found!");
+            self.printer.error("looked for:", ", ".join(configuration_files));
+            self.printer.error("an example configuration should have been bundled with this program");
+            return None, None, None;
         
         # open log
         if not self.overlay_settings(cp, "general"):

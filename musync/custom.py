@@ -125,4 +125,28 @@ def inspect(o):
     print "inspection:", type(o), repr(o);
     return o;
 
-__all__ = ["ue"]
+def case(mv, *args, **kw):
+    for a in args:
+        if not isinstance(a, tuple):
+            continue;
+        
+        kv, v = a;
+        
+        if mv == kv:
+            if type(v) == types.FunctionType:
+                return v();
+            else:
+                return v;
+
+    for kv in kw:
+        v = kw[kv];
+        
+        if mv == kv:
+            if type(v) == types.FunctionType:
+                return v();
+            else:
+                return v;
+    
+    return None;
+
+__all__ = ["ue", "case", "inspect"]
