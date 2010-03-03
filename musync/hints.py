@@ -28,7 +28,7 @@ def print_hint(text):
 
 def run(app):
     # will never hint if silent
-    if app.lambdaenv.silent():
+    if app.lambdaenv.silent:
         return;
     
     if musync.op.handled_files == 0 and musync.op.handled_dirs > 0:

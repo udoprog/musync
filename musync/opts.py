@@ -63,19 +63,18 @@ class LambdaEnviron(dict):
         return self.has_key(key);
 
 LambdaTemplate = {
-    'suppressed': lambda: [],
-    "pretend": lambda: False,
-    "recursive": lambda: False,
-    "lock": lambda: False,
-    'silent': lambda: False,
-    'verbose': lambda: True,
-    "force": lambda: False,
-    "root": lambda: None,
-    "config": lambda: None,
-    "modify": lambda: dict(),
-    "debug": lambda: True,
-    "configurations": lambda: [],
-    "lockdb": lambda: None,
+    'suppressed': [],
+    "pretend": False,
+    "recursive": False,
+    "lock": False,
+    'silent': False,
+    'verbose': True,
+    "force": False,
+    "root": None,
+    "config": None,
+    "modify": dict(),
+    "debug": True,
+    "configurations": [],
     "transcode": None,
 };
 
@@ -84,55 +83,60 @@ class AppSession:
     Global application session.
     Should be common referenced in many methods.
     """
+    def overlay_import(self, parser):
+        ok = True;
+
+        if not parser.has_section("import"):
+            self.printer.error("No 'import' section found in configuration");
+            return False;
+        
+        for key in parser.options("import"):
+            val = parser.get("import", key)
+            
+            if val == "":
+                self.printer.warning("ignoring empty key: " + key);
+                continue;
+            
+            import_stmt = val;
+
+            parts = import_stmt.split(".")[1:];
+            parts.reverse();
+            
+            imported_m = None;
+            
+            try:
+                imported_m = __import__(import_stmt);
+            except ImportError, e:
+                self.printer.error("[I] " + key + ": " + str(e));
+                ok = False;
+                continue;
+            
+            while len(parts) > 0:
+                imported_m = getattr(imported_m, parts.pop());
+            
+            self.imports[key] = val;
+            self.lambdaenv[key] = imported_m;
+
+        return ok;
     
     def overlay_settings(self, parser, sect):
         """
         Overlay all settings from a specific section in the configuration file.
         """
         if not parser.has_section(sect):
-            self.printer.error("section does not exist: " + sect);
+            self.printer.error("section does not exist:", sect);
             return False;
         
         ok = True;
-
-        kd = dict();
-
-        for key in parser.options(sect):
-            kd[key] = parser.get(sect, key);
         
-        for key in dict(kd):
-            val = kd[key];
-            self.settings[key] = val;
+        for key in parser.options(sect):
+            val = parser.get(sect, key);
             
             if val == "":
-                self.printer.warning("ignoring empty key: " + key);
-                kd.pop(key);
+                self.printer.warning("ignoring empty key:", key);
                 continue;
             
-            if val.startswith("import "):
-                kd.pop(key);
-                
-                import_stmt = val[6:].strip();
-
-                parts = import_stmt.split(".")[1:];
-                parts.reverse();
-                
-                imported_m = None;
-                
-                try:
-                    imported_m = __import__(import_stmt);
-                except ImportError, e:
-                    self.printer.error("[I] " + key + ": " + str(e));
-                    ok = False;
-                    continue;
-                
-                while len(parts) > 0:
-                    imported_m = getattr(imported_m, parts.pop());
-                
-                self.lambdaenv[key] = imported_m;
-        
-        for key in kd:
-            val = kd[key];
+            self.settings[key] = val;
             
             try:
                 val = eval(val, self.lambdaenv);
@@ -144,7 +148,7 @@ class AppSession:
             self.lambdaenv[key] = val;
         
         return ok;
-    
+
     def read_argv(self, argv):
         cp = RawConfigParser();
         
@@ -164,6 +168,10 @@ class AppSession:
             self.printer.error("no configuration files found!");
             self.printer.error("looked for:", ", ".join(configuration_files));
             self.printer.error("an example configuration should have been bundled with this program");
+            return None, None, None;
+        
+        if not self.overlay_import(cp):
+            self.printer.error("could not overlay settings from 'import' section");
             return None, None, None;
         
         # open log
@@ -203,6 +211,7 @@ class AppSession:
         self.args = None;
         self.printer = musync.printer.AppPrinter(self, stream);
         self.lambdaenv=LambdaEnviron(LambdaTemplate);
+        self.imports=LambdaEnviron();
         self.settings=LambdaEnviron();
         
         cp, opts, args = self.read_argv(argv);
@@ -228,30 +237,28 @@ class AppSession:
         for opt, arg in opts:
             #loop through the arguments and do what we're supposed to do:
             if opt in ("-p", "--pretend"):
-                self.lambdaenv.pretend = lambda: True;
+                self.lambdaenv.pretend = True;
             elif opt in ("-V", "--version"):
                 print version_str%version;
                 return None;
             elif opt in ("-R", "--recursive"):
-                self.lambdaenv.recursive = lambda: True;
+                self.lambdaenv.recursive = True;
             elif opt in ("-L", "--lock"):
-                self.lambdaenv.lock = lambda: True;
+                self.lambdaenv.lock = True;
             elif opt in ( "-s", "--silent" ):
-                self.lambdaenv.silent = lambda: True;
+                self.lambdaenv.silent = True;
             elif opt in ( "-v", "--verbose" ):
-                self.lambdaenv.verbose = lambda: True;
+                self.lambdaenv.verbose = True;
             elif opt in ("-f", "--force"):
-                self.lambdaenv.force = lambda: True;
+                self.lambdaenv.force = True;
             elif opt in ("-c", "--config"):
-                conf = self.lambdaenv.configurations();
-                conf.extend(map(lambda a: a.strip(), arg.split(",")));
-                self.lambdaenv.configurations = lambda: conf;
+                self.lambdaenv.configurations.extend(map(lambda a: a.strip(), arg.split(",")));
             elif opt in ("-M", "--modify"):
-                self.lambdaenv.modify = lambda: parse_modify(self, self.lambdaenv.modify, arg);
+                self.lambdaenv.modify = parse_modify(self, self.lambdaenv.modify, arg);
             elif opt in ("-d", "--debug"):
-                self.lambdaenv.debug = lambda: True;
+                self.lambdaenv.debug = True;
             elif opt in ("--root"):
-                self.lambdaenv.root = lambda: arg;
+                self.lambdaenv.root = arg;
             else:
               self.printer.error("unkown option:", opt);
         
@@ -260,7 +267,7 @@ class AppSession:
         #
         anti_circle = [];
         
-        for config in self.lambdaenv.configurations():
+        for config in self.lambdaenv.configurations:
             self.printer.notice("overlaying", config)
 
             if config in anti_circle:
@@ -273,13 +280,13 @@ class AppSession:
                 self.printer.error("could not overlay section:", section);
                 return;
         
-        if not os.path.isdir(self.lambdaenv.root()):
+        if not os.path.isdir(self.lambdaenv.root):
             self.printer.error("         root:", "Root library directory non existant, cannot continue.");
-            self.printer.error("current value:", self.lambdaenv.root());
+            self.printer.error("current value:", self.lambdaenv.root);
             return;
         
         # check that a specific set of lambda functions exist
-        for key in ["add", "rm", "hash", "targetpath", "checkhash", "lockdb", "root"]:
+        for key in ["add", "rm", "hash", "targetpath", "checkhash", "root"]:
             if not self.lambdaenv.has_key(key):
                 self.printer.error("must be a lambda function:", key);
                 return;

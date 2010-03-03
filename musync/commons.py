@@ -64,7 +64,7 @@ class Path:
         # open metadata if this is a file
         # if this is None, it's an indication that the file is not supported.
         if self.isfile():
-            self.meta = musync.formats.open(self.path, **self.app.lambdaenv.modify());
+            self.meta = musync.formats.open(self.path, **self.app.lambdaenv.modify);
     
     def get_path(self):
         if self.ext:
@@ -137,11 +137,11 @@ class Path:
         return;
     # the following are only helpful in musync
     def inroot(self):
-        if not self.isroot() and self.path.startswith(self.app.lambdaenv.root()):
+        if not self.isroot() and self.path.startswith(self.app.lambdaenv.root):
             return True;
         return False;
     def isroot(self):
-        if self.path == self.app.lambdaenv.root():
+        if self.path == self.app.lambdaenv.root:
             return True;
         return False;
     def relativepath(self):
@@ -152,6 +152,6 @@ class Path:
         if not self.inroot():
             return False;
         
-        l = len(self.app.lambdaenv.root());
+        l = len(self.app.lambdaenv.root);
         
         return self.path[l+1:];

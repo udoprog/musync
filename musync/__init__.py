@@ -79,14 +79,14 @@ def op_add(app, source):
         app.printer.warning("locked:", source.path);
         return
 
-    if app.lambdaenv.pretend():
+    if app.lambdaenv.pretend:
         app.printer.notice("would add:", source.path);
         app.printer.blanknotice("       as:", target.relativepath());
     else:
         app.printer.action("adding file:", target.relativepath());
         db.add(app, source, target);
     
-    if app.lambdaenv.lock():
+    if app.lambdaenv.lock:
         op_lock(app, target);
 
 def op_remove(app, source):
@@ -104,7 +104,7 @@ def op_remove(app, source):
             app.printer.warning("cannot remove directory (not empty):", source.relativepath());
             return;
         
-        if app.lambdaenv.pretend():
+        if app.lambdaenv.pretend:
             app.printer.notice("would remove empty dir:", source.relativepath());
             return;
         else:
@@ -137,7 +137,7 @@ def op_remove(app, source):
             app.printer.warning("target file not found:", target.relativepath());
             return;
         
-        if app.lambdaenv.pretend():
+        if app.lambdaenv.pretend:
             app.printer.notice(     "would remove:", source.path);
             app.printer.blanknotice("          as:", target.relativepath());
         else:
@@ -193,7 +193,7 @@ def op_fix(app, source):
     else:
         target = source;
 
-    if app.lambdaenv.pretend():
+    if app.lambdaenv.pretend:
         app.printer.notice("would check:", source.path);
         if target.isfile():
             app.printer.blanknotice("         as:", target.relativepath());
@@ -203,7 +203,7 @@ def op_fix(app, source):
         elif source.isdir():
             db.fix_dir(app, source);
     
-    if app.lambdaenv.lock():
+    if app.lambdaenv.lock:
         op_lock(app, target);
 
 def op_lock(app, source):
@@ -216,7 +216,7 @@ def op_lock(app, source):
         app.printer.warning("can only lock files in 'root'");
         return;
 
-    if app.lambdaenv.pretend():
+    if app.lambdaenv.pretend:
         app.printer.notice("would try to lock:", source.path);
         return;
     
@@ -241,7 +241,7 @@ def op_unlock(app, source):
         app.printer.warning("can only unlock files in 'root'");
         return;
 
-    if app.lambdaenv.pretend():
+    if app.lambdaenv.pretend:
         app.printer.notice("would try to unlock:", source.path);
         return;
     
@@ -294,8 +294,8 @@ def main(app):
     
     elif app.args[0] in ("rm","remove"):  #remove files from depos
 
-        if app.lambdaenv.verbose():
-            if app.lambdaenv.pretend():
+        if app.lambdaenv.verbose:
+            if app.lambdaenv.pretend:
                 app.printer.boldnotice("# Pretending to remove files...");
             else:
                 app.printer.boldnotice("# Removing files...");
@@ -303,8 +303,8 @@ def main(app):
         musync.op.operate(app, op_remove);
     elif app.args[0] in ("add","sync"): #syncronize files with musicdb
 
-        if app.lambdaenv.verbose():
-            if app.lambdaenv.pretend():
+        if app.lambdaenv.verbose:
+            if app.lambdaenv.pretend:
                 app.printer.boldnotice("# Pretending to add files...");
             else:
                 app.printer.boldnotice("# Adding files...");
@@ -312,8 +312,8 @@ def main(app):
         musync.op.operate(app, op_add);
     elif app.args[0] in ("fix"): #syncronize files with musicdb
 
-        if app.lambdaenv.verbose():
-            if app.lambdaenv.pretend():
+        if app.lambdaenv.verbose:
+            if app.lambdaenv.pretend:
                 app.printer.boldnotice("# Pretending to fix files...");
             else:
                 app.printer.boldnotice("# Fixing files...");
@@ -322,8 +322,8 @@ def main(app):
         musync.op.operate(app, op_fix);
     elif app.args[0] in ("lock"):
 
-        if app.lambdaenv.verbose():
-            if app.lambdaenv.pretend():
+        if app.lambdaenv.verbose:
+            if app.lambdaenv.pretend:
                 app.printer.boldnotice("# Pretending to lock files...");
             else:
                 app.printer.boldnotice("# Locking files...");
@@ -331,8 +331,8 @@ def main(app):
         musync.op.operate(app, op_lock);
     elif app.args[0] in ("unlock"):
 
-        if app.lambdaenv.verbose():
-            if app.lambdaenv.pretend():
+        if app.lambdaenv.verbose:
+            if app.lambdaenv.pretend:
                 app.printer.boldnotice("# Pretending to unlock files...");
             else:
                 app.printer.boldnotice("# Unlocking files...");
@@ -344,8 +344,8 @@ def main(app):
     else:
         raise musync.errors.FatalException("no such operation: " + app.args[0]);
     
-    if app.lambdaenv.verbose():
-        if app.lambdaenv.pretend():
+    if app.lambdaenv.verbose:
+        if app.lambdaenv.pretend:
             app.printer.boldnotice("# Pretending done!");
         else:
             app.printer.boldnotice("# Done!");
@@ -382,7 +382,7 @@ def entrypoint():
         main(app);
     except musync.errors.FatalException, e: # break execution exception.
         app.printer.error((str(e)));
-        if app.lambdaenv.debug():
+        if app.lambdaenv.debug:
             print traceback.format_exc();
     except Exception, e: # if this happens, something went really bad.
         app.printer.error("Fatal Exception:", str(e));
@@ -392,7 +392,7 @@ def entrypoint():
     except SystemExit, e: # interrupts and such
         sys.exit(e);
     
-    if app.lambdaenv.verbose():
+    if app.lambdaenv.verbose:
         app.printer.boldnotice("handled", musync.op.handled_files, "files and", musync.op.handled_dirs, "directories");
     
     #musync.hints.run(app);

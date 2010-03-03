@@ -235,7 +235,7 @@ class AppPrinter(TermCaps):
         if not self.app.configured:
             return False;
         
-        if self.app.lambdaenv.silent() and type.lower() in self.app.lambdaenv.suppressed():
+        if self.app.lambdaenv.silent and type.lower() in self.app.lambdaenv.suppressed:
               return True;
         
         return False;

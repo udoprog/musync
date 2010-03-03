@@ -57,7 +57,7 @@ def build_target(app, source, **kw):
                  musync.meta.cleanmeta();
     """
     
-    return musync.commons.Path(app, os.path.join(app.lambdaenv.root(), app.lambdaenv.targetpath(source)), **kw);
+    return musync.commons.Path(app, os.path.join(app.lambdaenv.root, app.lambdaenv.targetpath(source)), **kw);
 
 def hash_get(app, path):
     return app.lambdaenv.hash(path);
@@ -76,7 +76,7 @@ def add(app, p, t):
         app.printer.warning("source and target file same");
         return;
     
-    if (t.exists() or t.islink()) and not app.lambdaenv.force():
+    if (t.exists() or t.islink()) and not app.lambdaenv.force:
         app.printer.warning("file already exists:", t.relativepath());
         return;
     
@@ -94,13 +94,13 @@ def add(app, p, t):
             if not p.exists():
                 raise musync.errors.FatalException("cannot perform add operation, source file does no longer exist!");
         
-        if app.lambdaenv.checkhash(p.meta):
+        if app.lambdaenv.checkhash:
             parity = hash_get(app, p.path);
         
         app.lambdaenv.add(p.path, t.path);
         
         # if settings prompt, check target file hash.
-        if app.lambdaenv.checkhash(p.meta):
+        if app.lambdaenv.checkhash:
             check = hash_get(app, t.path);
             
             if parity == check:
@@ -116,7 +116,7 @@ def add(app, p, t):
 def remove (app, p, t):
     "removes a file from the database"
     
-    if t.path == p.path and not app.lambdaenv.force():
+    if t.path == p.path and not app.lambdaenv.force:
         app.printer.warning("target is same as source  (use --force if you really wan't to do this)");
         return;
     
@@ -158,11 +158,11 @@ def transcode(app, source, target):
         # this is the temporary file for the transcode.
         tmp_file = os.path.join(musync.opts.tmp, str(os.getpid()), target.ext);
         
-        if (target.exists() or target.islink()) and not app.lambdaenv.force():
+        if (target.exists() or target.islink()) and not app.lambdaenv.force:
             app.printer.warning("file already exists:", target.relativepath());
             return None;
         
-        if app.lambdaenv.pretend():
+        if app.lambdaenv.pretend:
             app.printer.action("would have transcoded", source_ext, "to", target_ext);
         else:
             app.printer.action("transcoding", source_ext, "to", target_ext);
@@ -173,13 +173,13 @@ def transcode(app, source, target):
     
     r = app.lambdaenv.transcode(source);
     
-    if not r:
+    if r is None:
         return (source, target);
     
     if not isinstance(r, tuple):
         app.printer.warning("transcoding:",
                 "returned unexpected non-tuple, should have been; (ext, func), was:", type(r));
-        return (source, target);
+        return None;
     
     target_ext, method = r;
     return handle(app, source.ext, target_ext, method, source, target);
