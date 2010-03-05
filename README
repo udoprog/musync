@@ -1,105 +1,25 @@
-musync README
+=== About Musync ===
+Musync is a music organizer which sorts music files, from the commandline, to where you want them to be.
 
-    authors John-John Tedro (johnjohn.tedro@gmail.com) a.k.a udoprog
-    contact: mail or #ost@tinfoilnet.org
+It was conceptuated by Albin Stjerna, and mostly implemented by John-John Tedro.
 
-    SEE THE ChangeLog for important changes that might effect you!
+Musync is *highly* customizable using it's configuration files, which relies heavily on python's 'eval' to do it's dirty work, but by default it is highly efficient in doing the following:
 
-    For windows users: you are on your own atm, there simply is no way to get an 'ok' working ui under windows.
-                       in future we might add a few .bat scripts but plans are being laid for gui-wrapper.
-                       I have added binaries for cp, md5sum and sed. These are the result of
-                       http://unxutils.sourceforge.net/ so if you wan't latest version and such you should look there.
+    * Add your music in a nice filestructure which is compatible with unix naming conventions (only ascii letters).
+    * Clean any 'ugly letters' into a ascii-readable alternative. Like 'e' with an acute diacritic (é) to ascii 'e'.
 
-    === Dependencies ===
-        * mutagen >=1.12
-          http://www.sacredchao.net/quodlibet/wiki/Download
-        * the common *nix tools cp, rm and sed (GNU sed is recommended)
+Therefore, even if you listen to french, german or russian artists. You will still be able to browse your music archive with ease from a shell.
 
-    === Installation ===
-        posix: run 'python setup.py install' as superuser (or build as normal, then install)
-        
-        read what it says.
+=== Configuration ===
+As mentioned, musync is *highly* customizable. The only work that musync performs for you, is automatic iteration of directories, identification of files containing metadata, and performing an event chain.
 
-        example configurations will be in:
-        posix: /usr/local/musync
-        windows: c:\temp
+The event chain for the action 'add' could look like the following:
 
-    === Configuration ===
-        Musync's default configuration will not work for your system, you have to manually configure it.
+    1: *scan for files*
+    2: *filter files with readable metadata and calculate 'dest' using 'targetpath'*
+    3: *perform 'add' on each file*
+    4: *perform 'checkhash' on 'src' and 'dest', if the return value of chechhash does not match, try to add again or fail after a couple of times.
 
+Each of the methods, 'add'. 'checkhash' and 'targetpath' are defined using configuration, and most of them use one or more methods from the musync.custom namespace.
 
-    === General ===
-        to use musync for adding music to your filestructure, do something like:
-            
-            musync -R add /path/to/album/
-
-        or for piping:
-            
-            ls /path/to/music/*/* | musync add
-
-        piping should be used in second hands since it doesn't allow musync an overview of the directories.
-
-        deleting has similar syntax, just use 'rm'
-        
-        If musync complains about bad metadata, check out the log-file that was created (default /tmp/log-fixes.log)
-        and run it trough some nice tagger, like musicbrainz picard.
-
-        there is a manual in construction at svn which can be found on http://sf.net/projects/musync 
-
-        --- what is 'fix'? ---
-            i noticed that my music files really got screwed around when adding stuff to musync.sed for naming rules, and i had
-            to remove a directory which hade been created by a bad rule etc.
-
-            what 'fix' does is that it sanitychecks the files in your repository, and makes sure that no empty directories and
-            files tagged differently exists.
-            directories will be removed, files will just be moved.
-
-            There is quite extensive output using this command.
-
-    === Configuration ===
-        MuSync will look for the following configuration files:
-            
-            /etc/musync.conf
-            ~/.musync
-        
-        It uses the native Python RawConfigParser, which accepts the following syntax:
-
-            [general]
-            root: /path/to/foo
-            root= /path/to/foo
-            # I am a comment
-            
-        Everythin written in a section [foo] will be used by MuSync when using '-c foo', this will override options.
-        The [general] section is the default section, this will always be read.
-
-        If more than one section are read, the keys are overwritten cronologically, starting with the first read.
-        this will result in the 'last' key read will be applied to the program.
-
-    === Notes ===
-        by default, the files are placed in
-
-            %root%/%artist%/%album%/%track%-%title%.%ext%
-
-        sed-scripting knowledge if a must if you dislike the way musync sanitizes string names.
-        But if you find the interest, check the 'sed-with' option in configuration
-        (default /etc/musunc.conf) and tamper with sed-naming file (default /etc/musync.sed).
-        
-        We stress that musync has _only_ been developed and tested under utf-8 locale system, but should be able to run properly on others as well.
-
-        MuSync could be made operating system independant but would require some skills configuring sed and using configuration, we'll se in the future.
-    
-    === IMPORTANT ===
-        Current behaviour when character with decimal value > 127 is encountered, it will be replaced by a series of 0xXX - hexadecimal values.
-        example (if letter would not have been supported):
-            Random Artist - Hallå Världen! -> random_artist - hall0xXX0xXX_v0xXX0xXXrlden
-            
-        This is to make sure that on cases where naming fails, it will be noticed.
-        A warning will also be printed.
-
-        a way to search for misnaming is to run the following command in you music library:
-
-            ls -R | grep -r "0x[0-9a-e][0-9a-e]"
-
-        Look out for these in your libraries and add them to /etc/musync.sed for proper replacing rules. Remember to comment and try to be as international as possible.
-        - If you find files which are named incorrectly, please do try to fix the script musync.sed (default /etc/musync.sed) to name correctly.
-        - If you feel that you have a fix that is important please send it to us!
+To see the source code of these methods (if you want inspiration for your own), see musync/custom.py for inspiration.

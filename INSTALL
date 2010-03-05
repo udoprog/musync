@@ -1,3 +1,12 @@
-musync INSTALL
-    
-    SEE README, this is not ready for release.
+Requires:
+
+    * Python 2.6
+    * Mutagen > 1.17
+    * Latest Setuptools
+
+How to install (as root or with sudo):
+
+#> sudo python setup.py install
+#> sudo cp share/musync.conf share/musync.rules /etc/
+
+Read share/musync.conf for instructions on how to configure.
