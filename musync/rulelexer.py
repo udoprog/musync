@@ -71,8 +71,8 @@ class RuleLexer:
 
   COMMANDS=[REGEXP, UNICODE];
   
-  unicode_token = re.compile("^U\+([A-Fa-f0-9]+)$");
-  unicodegroup_token = re.compile("^U\+([A-Fa-f0-9]+)-U\+([A-Fa-f0-9]+)$");
+  unicode_token = re.compile("^([A-Fa-f0-9]+)$");
+  unicodegroup_token = re.compile("^([A-Fa-f0-9]+)-([A-Fa-f0-9]+)$");
   
   def __init__(self):
     self.tree = list();
@@ -86,6 +86,12 @@ class RuleLexer:
       while reader.next() != '\n':
         if reader.current() is None:
           break;
+        
+        if reader.current() == "#":
+          while reader.next() != '\n':
+            pass;
+          break;
+        
         line.append(reader.current());
 
       self._line += 1;
