@@ -71,8 +71,8 @@ class RuleLexer:
 
   COMMANDS=[REGEXP, UNICODE];
   
-  unicode_token = re.compile("^([A-Fa-f0-9]+)$");
-  unicodegroup_token = re.compile("^([A-Fa-f0-9]+)-([A-Fa-f0-9]+)$");
+  unicode_token = re.compile("^U?\+?([A-Fa-f0-9]+)$");
+  unicodegroup_token = re.compile("^U?\+?([A-Fa-f0-9]+)-U?\+?([A-Fa-f0-9]+)$");
   
   def __init__(self):
     self.tree = list();
@@ -179,7 +179,6 @@ class RegexpRule(Rule):
   
   def match(self, string):
     return self.reobj.sub(self.repl, string);
-
 
 class UnicodeMatch:
   def matches(self, c):
