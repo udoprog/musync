@@ -147,4 +147,12 @@ def case(mv, *args, **kw):
     
     return None;
 
-__all__ = ["ue", "case", "inspect"]
+def each(*args):
+    for a in args:
+        if type(a) != types.FunctionType:
+            continue;
+        
+        if not a():
+            return;
+
+__all__ = ["ue", "case", "inspect", "each"]
