@@ -166,7 +166,9 @@ def transcode(app, source, target):
             app.printer.action("would have transcoded", source_ext, "to", target_ext);
         else:
             app.printer.action("transcoding", source_ext, "to", target_ext);
-            method(source.path, tmp_file);
+            if not method(source.path, tmp_file):
+                app.printer.error("transcoding method failed!");
+                return None;
         
         # temp-file is the new source.
         return (musync.commons.Path(app, tmp_file), target);
