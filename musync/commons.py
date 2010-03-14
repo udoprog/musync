@@ -66,11 +66,25 @@ class Path:
         if self.isfile():
             self.meta = musync.formats.open(self.path, **self.app.lambdaenv.modify);
     
-    def get_path(self):
-        if self.ext:
-            return os.path.join(self.dir, self.basename) + "." + self.ext;
+    def update(self, **kw):
+        if kw.has_key('ext'):
+            self.ext = kw.get('ext');
+        
+        if kw.has_key('basename'):
+            self.basename = kw.get('basename');
+
+        if kw.has_key('dir'):
+            self.dir = kw.get('dir');
+    
+    def get_path(self, **kw):
+        ext = kw.get('ext', self.ext);
+        basename = kw.get('basename', self.basename);
+        dir = kw.get('dir', self.dir);
+        
+        if ext:
+            return os.path.join(dir, basename) + "." + ext;
         else:
-            return os.path.join(self.dir, self.basename);
+            return os.path.join(dir, basename);
     
     path = property(get_path)
     

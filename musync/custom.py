@@ -156,7 +156,7 @@ def case(mv, *args, **kw):
             return v;
     
     # match a kw
-    return kw.get(str(mv), None);
+    return kw.get(str(mv), kw.get('_', None));
 
 def each(*args):
     """
@@ -189,5 +189,20 @@ def in_tmp(func, *args, **kw):
         return func(tmp, *args, **kw);
     finally:
         os.unlink(tmp);
+
+def safecopy(src, dst, hasher=None):
+    import shutil;
+
+    parity = None;
+
+    if hasher is not None:
+        parity = hasher(src);
+    
+    shutil.copy(src, dst);
+    
+    if hasher is not None:
+        return hasher(dst) == parity;
+    
+    return True;
 
 __all__ = ["ue", "case", "inspect", "each", "in_tmp"]

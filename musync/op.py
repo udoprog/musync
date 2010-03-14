@@ -28,13 +28,10 @@ import musync.commons;
 import sys;
 
 import traceback;
-import musync.sign;
 
 # keep track of how many directories and files we are handling.
 handled_dirs = 0;
 handled_files = 0;
-
-import cStringIO;
 
 def operate(app, call, inroot=False):
     """

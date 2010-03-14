@@ -41,6 +41,7 @@ import types;
 
 from ConfigParser import RawConfigParser;
 from musync.errors import FatalException;
+from musync.goals import Goal;
 
 import musync.locker;
 import musync.custom;
@@ -285,11 +286,17 @@ class AppSession:
             self.printer.error("current value:", self.lambdaenv.root);
             return;
         
-        # check that a specific set of lambda functions exist
-        for key in ["add", "rm", "hash", "targetpath", "checkhash", "root"]:
-            if not self.lambdaenv.has_key(key):
-                self.printer.error("must be a lambda function:", key);
-                return;
+        for goal in Goal.getgoals():
+            for req in goal.required:
+                if not self.lambdaenv.has_key(req):
+                    self.printer.error("missing required function:", req);
+                    return;
+                
+                goal.functions[req] = self.lambdaenv.get(req);
+            
+            for opt in goal.optional:
+                if self.lambdaenv.has_key(opt):
+                    goal.functions[opt] = self.lambdaenv.get(opt);
         
         self.setup_locker(self.lambdaenv.lockdb());
         self.args = args;

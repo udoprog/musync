@@ -43,52 +43,6 @@ import traceback;
 
 #global stop variable
 
-def op_add(app, source):
-    """
-    Operation to add files to filestructure.
-    @param source Path object to file being added.
-    """
-
-    if source.isdir():
-        app.printer.notice("ignoring directory:", source.path);
-        return;
-   
-    if not source.isfile():
-        app.printer.warning("not a file:", source.path);
-        return;
-    
-    if not source.meta:
-        app.printer.warning("could not open metadata:", source.path);
-        return;
-    
-    # this causes nice display of artist/album
-    app.printer.focus(source.meta);
-    
-    target = db.build_target(app, source);
-    # FIXME: need transcoding
-    #if we are trying to transcode
-    if app.lambdaenv.transcode is not None:
-        r = db.transcode(app, source, target);
-        
-        if r is None:
-            return;
-        
-        source, target = r;
-    
-    if app.locker.islocked(target):
-        app.printer.warning("locked:", source.path);
-        return
-
-    if app.lambdaenv.pretend:
-        app.printer.notice("would add:", source.path);
-        app.printer.blanknotice("       as:", target.relativepath());
-    else:
-        app.printer.action("adding file:", target.relativepath());
-        db.add(app, source, target);
-    
-    if app.lambdaenv.lock:
-        op_lock(app, target);
-
 def op_remove(app, source):
     """
     Operation to remove files matching in filestructure.
@@ -206,84 +160,9 @@ def op_fix(app, source):
     if app.lambdaenv.lock:
         op_lock(app, target);
 
-def op_lock(app, source):
-    """
-    lock a file, making it unavailable to adding, removing and such.
-    @param source Path object to file being locked.
-    """
-
-    if not source.inroot():
-        app.printer.warning("can only lock files in 'root'");
-        return;
-
-    if app.lambdaenv.pretend:
-        app.printer.notice("would try to lock:", source.path);
-        return;
-    
-    if source.isdir():
-        app.locker.lock(source);
-        app.printer.notice("dir has been locked:", source.path);
-        return;
-    elif source.isfile():
-        app.locker.lock(source);
-        app.printer.notice("file has been locked:", source.path);
-        return;
-    
-    app.printer.warning("cannot handle file:", source.path);
-
-def op_unlock(app, source):
-    """
-    Unlock a file, making it available to adding, removing and such.
-    @param source Path object to file being unlocked.
-    """
-    
-    if not source.inroot():
-        app.printer.warning("can only unlock files in 'root'");
-        return;
-
-    if app.lambdaenv.pretend:
-        app.printer.notice("would try to unlock:", source.path);
-        return;
-    
-    if source.isfile():
-        if app.locker.islocked(source):
-            app.locker.unlock(source);
-            app.printer.notice("path has been unlocked:", source.path);
-        elif app.locker.parentislocked(source):
-            tp = source.parent();
-            app.printer.warning("parent is locked:", tp.path);
-        else:
-            app.printer.warning("path is not locked:", source.path);
-        return;
-    elif source.isdir():
-        app.locker.unlock(source);
-        app.printer.notice("dir has been unlocked:", source.path);
-        return;
-    
-    app.printer.warning("cannot handle file:", source.path);
-
-def op_inspect(app, source):
-    """
-    give a friendly suggestion of how you would name a specific file.
-    """
-    
-    if not source.isfile():
-        app.printer.warning("not a file:", source.path);
-        return;
-    
-    if not source.meta:
-        app.printer.warning("could not open metadata:", source.path);
-        return;
-
-    app.printer.boldnotice(source.meta.filename)
-    app.printer.blanknotice("artist:    ", repr(source.meta.artist))
-    app.printer.blanknotice("album:     ", repr(source.meta.album))
-    app.printer.blanknotice("title:     ", repr(source.meta.title))
-    app.printer.blanknotice("track:     ", repr(source.meta.track))
-    app.printer.blanknotice("year:      ", repr(source.meta.year))
-    app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(source)), "from", app.settings.targetpath);
-
 def main(app):
+    from musync.goals import Goal;
+
     if len(app.args) < 1:
         raise musync.errors.FatalException("To few arguments");
     
@@ -292,57 +171,67 @@ def main(app):
         print musync.opts.Usage();
         return 0;
     
-    elif app.args[0] in ("rm","remove"):  #remove files from depos
-
-        if app.lambdaenv.verbose:
-            if app.lambdaenv.pretend:
-                app.printer.boldnotice("# Pretending to remove files...");
-            else:
-                app.printer.boldnotice("# Removing files...");
-        
-        musync.op.operate(app, op_remove);
-    elif app.args[0] in ("add","sync"): #syncronize files with musicdb
-
-        if app.lambdaenv.verbose:
-            if app.lambdaenv.pretend:
-                app.printer.boldnotice("# Pretending to add files...");
-            else:
-                app.printer.boldnotice("# Adding files...");
-            
-        musync.op.operate(app, op_add);
-    elif app.args[0] in ("fix"): #syncronize files with musicdb
-
-        if app.lambdaenv.verbose:
-            if app.lambdaenv.pretend:
-                app.printer.boldnotice("# Pretending to fix files...");
-            else:
-                app.printer.boldnotice("# Fixing files...");
-
-        # make sure all paths are referenced relative to root.
-        musync.op.operate(app, op_fix);
-    elif app.args[0] in ("lock"):
-
-        if app.lambdaenv.verbose:
-            if app.lambdaenv.pretend:
-                app.printer.boldnotice("# Pretending to lock files...");
-            else:
-                app.printer.boldnotice("# Locking files...");
-        
-        musync.op.operate(app, op_lock);
-    elif app.args[0] in ("unlock"):
-
-        if app.lambdaenv.verbose:
-            if app.lambdaenv.pretend:
-                app.printer.boldnotice("# Pretending to unlock files...");
-            else:
-                app.printer.boldnotice("# Unlocking files...");
-        
-        musync.op.operate(app, op_unlock);
-    elif app.args[0] in ("inspect"):
-        app.printer.boldnotice("# Inspecting files...");
-        musync.op.operate(app, op_inspect);
-    else:
-        raise musync.errors.FatalException("no such operation: " + app.args[0]);
+    prefix = app.args[0];
+    
+    goal = Goal.getgoal(prefix);
+    
+    if not goal:
+        app.printer.error("Could not find goal for prefix:", prefix);
+        return 1;
+    
+    return goal(app).operate();
+    
+#    elif app.args[0] in ("rm","remove"):  #remove files from depos
+#
+#        if app.lambdaenv.verbose:
+#            if app.lambdaenv.pretend:
+#                app.printer.boldnotice("# Pretending to remove files...");
+#            else:
+#                app.printer.boldnotice("# Removing files...");
+#        
+#        musync.op.operate(app, op_remove);
+#    #elif app.args[0] in ("add", "sync"): #syncronize files with musicdb
+#    #
+#    #    if app.lambdaenv.verbose:
+#    #        if app.lambdaenv.pretend:
+#    #            app.printer.boldnotice("# Pretending to add files...");
+#    #        else:
+#    #            app.printer.boldnotice("# Adding files...");
+#    #        
+#    #    musync.op.operate(app, op_add);
+#    elif app.args[0] in ("fix"): #syncronize files with musicdb
+#
+#        if app.lambdaenv.verbose:
+#            if app.lambdaenv.pretend:
+#                app.printer.boldnotice("# Pretending to fix files...");
+#            else:
+#                app.printer.boldnotice("# Fixing files...");
+#
+#        # make sure all paths are referenced relative to root.
+#        musync.op.operate(app, op_fix);
+#    elif app.args[0] in ("lock"):
+#
+#        if app.lambdaenv.verbose:
+#            if app.lambdaenv.pretend:
+#                app.printer.boldnotice("# Pretending to lock files...");
+#            else:
+#                app.printer.boldnotice("# Locking files...");
+#        
+#        musync.op.operate(app, op_lock);
+#    elif app.args[0] in ("unlock"):
+#
+#        if app.lambdaenv.verbose:
+#            if app.lambdaenv.pretend:
+#                app.printer.boldnotice("# Pretending to unlock files...");
+#            else:
+#                app.printer.boldnotice("# Unlocking files...");
+#        
+#        musync.op.operate(app, op_unlock);
+#    elif app.args[0] in ("inspect"):
+#        app.printer.boldnotice("# Inspecting files...");
+#        musync.op.operate(app, op_inspect);
+#    else:
+#        raise musync.errors.FatalException("no such operation: " + app.args[0]);
     
     if app.lambdaenv.verbose:
         if app.lambdaenv.pretend:

@@ -129,10 +129,10 @@ def fix_file(app, p, t):
     if t.path == p.path:
         app.printer.notice("sane - %s"%(t.relativepath()));
         return; # this is sane.
-
+    
     if not t.isfile() and not t.islink():
-        app.printer.action("adding insane file - %s"%(p.relativepath()));
-        app.printer.action("                as - %s"%(t.relativepath()));
+        app.printer.action("adding insane file:", source.relativepath());
+        app.printer.action("                as:", target.relativepath());
         add(app, p, t);
     
     # since add might possibly move the file, check for existance
