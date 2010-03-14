@@ -339,7 +339,7 @@ class RemoveGoal(Goal):
         
         self.printer.action("removing file:", target.relativepath());
         
-        self.functions.get("rm")(target):
+        self.functions.get("rm")(target);
         
         if target.exists():
             self.printer.error("target was not removed:", target.relativepath());

@@ -25,16 +25,11 @@ printer - handles everything that needs to be printed.
 """
 
 import musync.printer; # app.printer module
-import musync.dbman as db;
 import musync.opts; #options
-import musync.op;
-import musync.hints;
-import musync.formats;
 import musync.locker;
-import musync.sign;
 import musync.errors;
+import musync.sign;
 
-import signal;
 import sys;
 import traceback;
 #import codecs;      # For utf-8 file support
@@ -179,59 +174,7 @@ def main(app):
         app.printer.error("Could not find goal for prefix:", prefix);
         return 1;
     
-    return goal(app).operate();
-    
-#    elif app.args[0] in ("rm","remove"):  #remove files from depos
-#
-#        if app.lambdaenv.verbose:
-#            if app.lambdaenv.pretend:
-#                app.printer.boldnotice("# Pretending to remove files...");
-#            else:
-#                app.printer.boldnotice("# Removing files...");
-#        
-#        musync.op.operate(app, op_remove);
-#    #elif app.args[0] in ("add", "sync"): #syncronize files with musicdb
-#    #
-#    #    if app.lambdaenv.verbose:
-#    #        if app.lambdaenv.pretend:
-#    #            app.printer.boldnotice("# Pretending to add files...");
-#    #        else:
-#    #            app.printer.boldnotice("# Adding files...");
-#    #        
-#    #    musync.op.operate(app, op_add);
-#    elif app.args[0] in ("fix"): #syncronize files with musicdb
-#
-#        if app.lambdaenv.verbose:
-#            if app.lambdaenv.pretend:
-#                app.printer.boldnotice("# Pretending to fix files...");
-#            else:
-#                app.printer.boldnotice("# Fixing files...");
-#
-#        # make sure all paths are referenced relative to root.
-#        musync.op.operate(app, op_fix);
-#    elif app.args[0] in ("lock"):
-#
-#        if app.lambdaenv.verbose:
-#            if app.lambdaenv.pretend:
-#                app.printer.boldnotice("# Pretending to lock files...");
-#            else:
-#                app.printer.boldnotice("# Locking files...");
-#        
-#        musync.op.operate(app, op_lock);
-#    elif app.args[0] in ("unlock"):
-#
-#        if app.lambdaenv.verbose:
-#            if app.lambdaenv.pretend:
-#                app.printer.boldnotice("# Pretending to unlock files...");
-#            else:
-#                app.printer.boldnotice("# Unlocking files...");
-#        
-#        musync.op.operate(app, op_unlock);
-#    elif app.args[0] in ("inspect"):
-#        app.printer.boldnotice("# Inspecting files...");
-#        musync.op.operate(app, op_inspect);
-#    else:
-#        raise musync.errors.FatalException("no such operation: " + app.args[0]);
+    goal(app).operate();
     
     if app.lambdaenv.verbose:
         if app.lambdaenv.pretend:
@@ -241,19 +184,6 @@ def main(app):
     
     app.locker.stop();
     return 0;
-
-# assign different signal handlers.
-try:
-    def exithandler(signum,frame):
-        signal.signal(signal.SIGINT, signal.SIG_IGN);
-        signal.signal(signal.SIGTERM, signal.SIG_IGN);
-        musync.sign.Interrupt = True;
-
-    signal.signal(signal.SIGINT, exithandler);
-    signal.signal(signal.SIGTERM, exithandler);
-#   signal.signal(signal.SIGPIPE, signal.SIG_IGN); removed to suite windows?
-except KeyboardInterrupt:
-    sys.exit(1);
 
 # This block ensures that ^C interrupts are handled quietly.
 def entrypoint():
@@ -268,7 +198,7 @@ def entrypoint():
         sys.exit(1);
     
     try:
-        main(app);
+        sys.exit(main(app));
     except musync.errors.FatalException, e: # break execution exception.
         app.printer.error((str(e)));
         if app.lambdaenv.debug:
@@ -279,12 +209,4 @@ def entrypoint():
         app.printer.error("Something went very wrong, please report this error at:", musync.opts.REPORT_ADDRESS);
         sys.exit(1);
     except SystemExit, e: # interrupts and such
-        sys.exit(e);
-    
-    if app.lambdaenv.verbose:
-        app.printer.boldnotice("handled", musync.op.handled_files, "files and", musync.op.handled_dirs, "directories");
-    
-    #musync.hints.run(app);
-    
-    # FIXME this might be unsafe 
-    sys.exit(musync.sign.ret());
+        sys.exit(1);

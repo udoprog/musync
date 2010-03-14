@@ -29,16 +29,21 @@ INTERRUPT = 10
 # This is used as a flag when interrupt is performed.
 Interrupt = False;
 # this is what is to be returned on an interrupt or failure.
-Ret = INTERRUPT;
-
-def ret():
-    global Ret;
-    return Ret;
-
-def setret(ret):
-    global Ret;
-    Ret = ret;
 
 def interrupt_handler(sig):
     global Interrupt;
     Interrupt = True;
+
+# assign different signal handlers.
+try:
+    def exithandler(signum, frame):
+        global Interrupt;
+        signal.signal(signal.SIGINT, signal.SIG_IGN);
+        signal.signal(signal.SIGTERM, signal.SIG_IGN);
+        Interrupt = True;
+    
+    signal.signal(signal.SIGINT, exithandler);
+    signal.signal(signal.SIGTERM, exithandler);
+#   signal.signal(signal.SIGPIPE, signal.SIG_IGN); removed to suite windows?
+except KeyboardInterrupt:
+    sys.exit(1);
