@@ -152,6 +152,4 @@ class Path:
         if not self.inroot():
             return False;
         
-        l = len(self.app.lambdaenv.root);
-        
-        return self.path[l+1:];
+        return os.path.relpath(self.path, self.app.lambdaenv.root);
