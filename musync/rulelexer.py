@@ -168,85 +168,44 @@ class RuleLexer:
     self.tree.append((command, rule, ''.join(repl)));
     return (True, -1, None);
 
-class Rule:
-  def match(self, string):
-    return [string];
-
-class RegexpRule(Rule):
-  def __init__(self, reobj, repl):
-    self.reobj = reobj;
-    self.repl = repl;
-  
-  def match(self, string):
-    return self.reobj.sub(self.repl, string);
-
-class UnicodeMatch:
-  def matches(self, c):
-    return False;
-
-class RangeRule(UnicodeMatch):
-  def __init__(self, fromc, toc):
-    self.fromc = fromc;
-    self.toc = toc;
-  
-  def matches(self, c):
-    return c >= self.fromc and c <= self.toc;
-
-class SingleRule(UnicodeMatch):
-  def __init__(self, matchc):
-    self.matchc = matchc;
-  
-  def matches(self, c):
-    return c == self.matchc;
-
-class GroupRule(UnicodeMatch):
-  def __init__(self):
-    self.group = list();
-  
-  def matches(self, c):
-    for g in self.group:
-      if g.matches(c):
-        return True;
-    return False;
-
-class UnicodeRule(Rule):
-  def __init__(self, ruleset, to):
-    self.to = to;
-    self.root = GroupRule();
-    
-    for rule in ruleset:
-      if type(rule) == long:
-        self.root.group.append(SingleRule(rule));
-      else:
-        self.root.group.append(RangeRule(rule[0], rule[1]));
-  
-  def match(self, string, **kw):
-    res = list();
-    
-    for c in iter(string):
-      if self.root.matches(ord(c)):
-        res.append(self.to);
-      else:
-        res.append(c);
-    
-    return ''.join(res);
-
 class RuleBook:
   def __init__(self, lexer, **kw):
     self.kw = kw;
     
     self.lexer = lexer;
-    self.rules = list();
+    self.charrules = list();
+    self.chardict = dict();
+    self.stringrules = list();
+    
+    def create_unicoderule(ruleset, to_c):
+      res = dict();
+      for rule in ruleset:
+        if type(rule) == long:
+          res[rule] = to_c;
+        else:
+          fromc, toc = rule;
+          for i in range(fromc, toc + 1):
+            res[i] = to_c;
+      return res;
     
     for rule in lexer.tree:
       if rule[0] == RuleLexer.REGEXP:
-        self.rules.append(RegexpRule(rule[1], rule[2]));
+        self.stringrules.append((rule[1], rule[2]));
       elif rule[0] == RuleLexer.UNICODE:
-        self.rules.append(UnicodeRule(rule[1], rule[2]));
+        self.chardict.update(create_unicoderule(rule[1], rule[2]));
   
   def match(self, string):
-    for rule in self.rules:
-      string = rule.match(string);
+    res = list();
+    
+    for c in string:
+      res.append(self.chardict.get(ord(c), c));
+    
+    # string pass;
+    string = ''.join(res);
+    
+    for regex, repl in self.stringrules:
+      string = regex.sub(repl, string);
+    
     return string;
 
 if __name__ == "__main__":
@@ -255,7 +214,7 @@ if __name__ == "__main__":
   assert lexer.lexrule(u'u_U+63-U+64,U+65_a_') == (True, -1, None);
   rulebook = RuleBook(lexer)
   print lexer.tree
-  print rulebook.rules[0].root.group[1].matchc
+  #print rulebook.rules[0].root.group[1].matchc
   print rulebook.match("cest")
   sys.exit(0)
 
