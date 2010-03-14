@@ -8,6 +8,8 @@ import hashlib
 import rulelexer
 import types
 import collections
+import tempfile
+import os
 
 def system(*args, **kw):
     """
@@ -166,6 +168,26 @@ def each(*args):
             continue;
         
         if not a():
-            return;
+            return False;
+    
+    return True;
 
-__all__ = ["ue", "case", "inspect", "each"]
+def in_tmp(func, *args, **kw):
+    """
+    Create a temporary file, use it as the first argument to a function, transparently also pass the other arguments.
+    
+    empty function: in_tmp(lambda tmp: ... ) 
+    Function with arguments: in_tmp(lambda tmp, foo: ... , "foo")
+    """
+    if type(func) != types.FunctionType:
+        return None;
+    
+    fo, tmp=tempfile.mkstemp();
+    os.close(fo);
+    
+    try:
+        return func(tmp, *args, **kw);
+    finally:
+        os.unlink(tmp);
+
+__all__ = ["ue", "case", "inspect", "each", "in_tmp"]

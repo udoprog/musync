@@ -37,6 +37,7 @@
 
 import musync.errors;
 import musync.commons;
+import tempfile;
 
 import os;
 # Current artist and album in focus
@@ -154,13 +155,14 @@ def transcode(app, source, target):
     def handle(app, source_ext, target_ext, method, source, target):
         # this is our new target.
         target = build_target(app, source, ext=target_ext);
-        
-        # this is the temporary file for the transcode.
-        tmp_file = os.path.join(musync.opts.tmp, str(os.getpid()), target.ext);
-        
+
         if (target.exists() or target.islink()) and not app.lambdaenv.force:
             app.printer.warning("file already exists:", target.relativepath());
             return None;
+        
+        # this is the temporary file for the transcode.
+        fp, tmp_file = tempfile.mkstemp();
+        os.close(fp);
         
         if app.lambdaenv.pretend:
             app.printer.action("would have transcoded", source_ext, "to", target_ext);
