@@ -316,3 +316,45 @@ class FixGoal(Goal):
         if not target.exists():
             self.printer.error("target was not created:", target.relativepath());
             return;
+
+class RemoveGoal(Goal):
+    prefix = ["remove", "rm"];
+    required = ["rm"];
+    optional = ["pre-rm"];
+    
+    fileonly = True;
+    build_target = True;
+    
+    def run_file(self, source, target):
+        if self.functions.has_key("pre-rm"):
+            self.functions.get("pre-rm")(source, target);
+        
+        if source.path == target.path and not self.app.lambdaenv.force:
+            self.printer.warning("target is same as source (not forced):", target.relativepath());
+            return;
+        
+        if not target.exists():
+            self.printer.warning("target does not exist:", target.relativepath());
+            return;
+        
+        self.printer.action("removing file:", target.relativepath());
+        
+        self.functions.get("rm")(target):
+        
+        if target.exists():
+            self.printer.error("target was not removed:", target.relativepath());
+            return;
+
+    def pretend_file(self, source, target):
+        if self.functions.has_key("pre-rm"):
+            self.functions.get("pre-rm")(source, target);
+        
+        if source.path == target.path and not self.app.lambdaenv.force:
+            self.printer.warning("target is same as source (not forced):", target.relativepath());
+            return;
+        
+        if not target.exists():
+            self.printer.warning("target does not exist:", target.relativepath());
+            return;
+        
+        self.printer.notice("would remove file:", target.relativepath());
