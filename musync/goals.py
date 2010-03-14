@@ -12,7 +12,9 @@ class Goal(object):
     
     fileonly = False;
     build_target = False;
+    require_filemeta = False;
     only_root = False;
+    
     functions = dict();
     
     def __init__(self, app):
@@ -176,8 +178,8 @@ class AddGoal(Goal):
         # this causes nice display of artist/album
         self.printer.focus(source.meta);
         
-        if target.exists():
-            self.printer.error("already exists:", target.relativepath());
+        if not self.app.lambdaenv.force and target.exists():
+            self.printer.error("already exists (not forced):", target.relativepath());
             return;
         
         self.printer.action("adding file:", target.relativepath());
@@ -226,7 +228,7 @@ class InspectGoal(Goal):
         self.printer.blanknotice("title:     ", repr(source.meta.title))
         self.printer.blanknotice("track:     ", repr(source.meta.track))
         self.printer.blanknotice("year:      ", repr(source.meta.year))
-        self.printer.blanknotice("targetpath:", repr(self.function.get("targetpath")(source)), "from", self.app.settings.targetpath);
+        self.printer.blanknotice("targetpath:", repr(self.functions.get("targetpath")(source)), "from", self.app.settings.targetpath);
         # this causes nice display of artist/album
         self.printer.focus(source.meta);
 
@@ -279,7 +281,8 @@ class UnlockGoal(Goal):
 
 class FixGoal(Goal):
     prefix = ["fix"];
-
+    require = ["add"]
+    
     root_only = True;
     build_target = True;
     
@@ -292,9 +295,24 @@ class FixGoal(Goal):
         source.rmdir();
     
     def run_file(self, source, target):
+        if self.functions.has_key("pre-add"):
+            self.functions.get("pre-add")(source, target);
+        
         if source.path == target.path:
-            app.printer.notice("sane:", target.relativepath());
+            self.printer.notice("sane:", target.relativepath());
             return;
         
-        app.printer.action("adding insane file:", source.relativepath());
-        app.printer.action("                as:", target.relativepath());
+        if not self.app.lambdaenv.force and target.exists():
+            self.printer.warning("already exists (not forced):", target.relativepath());
+            return;
+        
+        self.printer.action("fixing file:", source.relativepath());
+        self.printer.action("         as:", target.relativepath());
+        
+        if not self.functions.get("add")(source, target):
+            self.printer.error("add operation failed");
+            return;
+        
+        if not target.exists():
+            self.printer.error("target was not created:", target.relativepath());
+            return;
