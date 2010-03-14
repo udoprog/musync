@@ -7,6 +7,7 @@ import subprocess as sp
 import hashlib
 import rulelexer
 import types
+import collections
 
 def system(*args, **kw):
     """
@@ -127,27 +128,39 @@ def inspect(o):
     return o;
 
 def case(mv, *args, **kw):
+    """
+    Match a value against a set of cases.
+
+    The following matchmethods are available:
+
+    case('foo', bar="result1", foo="result2") -> "result"
+    case('foo', ('bar', "result1"), ('foo', "result2")) -> "result2"
+    case('foo', (('bar', 'baz'), "result1"), (('foo', 'biz'), "result2")) -> "result2"
+
+    The match does not have to be a string:
+
+    case(2, (1, "result1"), (2, "result2")) -> "result2"
+    """
     for a in args:
-        if not isinstance(a, tuple):
+        if not isinstance(a, tuple) and len(a) != 2:
             continue;
         
         kv, v = a;
         
-        if isinstance(kv, list) or isinstance(kv, tuple):
+        if isinstance(kv, collections.Sequence):
             if mv in kv:
                 return v;
         elif mv == kv:
             return v;
-
-    for kv in kw:
-        v = kw[kv];
-        
-        if mv == kv:
-            return v;
     
-    return None;
+    # match a kw
+    return kw.get(str(mv), None);
 
 def each(*args):
+    """
+    Run each argument if a FunctionType, in successive order.
+    Stop running on the first function to return false.
+    """
     for a in args:
         if type(a) != types.FunctionType:
             continue;
