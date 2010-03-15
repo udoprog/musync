@@ -1,12 +1,13 @@
 import musync.commons;
 import musync.sign;
-import musync.dbman as db;
 
 import sys;
 import os;
 
 class Goal(object):
-    prefix = None;
+    ns = "default"
+    
+    prefix = [];
     required = [];
     optional = [];
     
@@ -148,12 +149,27 @@ class Goal(object):
                 os.path.join(self.app.lambdaenv.root, self.app.lambdaenv.targetpath(source)), **kw);
 
     @classmethod
-    def getgoal(cls, prefix):
+    def getgoal(cls, prefix, namespace):
+        if ":" in prefix:
+            i = prefix.find(":");
+            namespace = prefix[:i];
+            prefix = prefix[i+1:];
+        else:
+            namespace = namespace;
+            goal = prefix;
+
         if prefix is None:
             return None;
 
-        for goal in cls.__subclasses__():
-            if prefix.lower() in goal.prefix:
+        def find_all_subclasses(cls):
+            klasslist = cls.__subclasses__();
+            while len(klasslist) > 0:
+                goal = klasslist.pop(0);
+                klasslist.extend(goal.__subclasses__());
+                yield goal;
+        
+        for goal in find_all_subclasses(cls):
+            if prefix.lower() in goal.prefix and goal.ns == namespace:
                 return goal;
         
         return None;

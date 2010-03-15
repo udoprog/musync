@@ -77,6 +77,7 @@ LambdaTemplate = {
     "debug": True,
     "configurations": [],
     "transcode": None,
+    "namespace": "default",
 };
 
 class AppSession:
@@ -106,7 +107,7 @@ class AppSession:
             imported_m = None;
             
             try:
-                imported_m = __import__(import_stmt);
+                imported_m = __import__(import_stmt, globals(), locals());
             except ImportError, e:
                 self.printer.error("[I] " + key + ": " + str(e));
                 ok = False;

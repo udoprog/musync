@@ -168,7 +168,7 @@ def main(app):
     
     prefix = app.args[0];
     
-    goal = Goal.getgoal(prefix);
+    goal = Goal.getgoal(prefix, app.lambdaenv.namespace);
     
     if not goal:
         app.printer.error("Could not find goal for prefix:", prefix);
