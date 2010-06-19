@@ -140,6 +140,17 @@ class TermCaps:
     
     def _writeall(self, *args, **kw):
         kw.get("stream", self.stream).write(''.join(args));
+    
+    def _unicodeencode(self, s):
+        if isinstance(s, unicode):
+            return s.encode("utf-8");
+        elif isinstance(s, basestring):
+            return s;
+        else:
+            return str(s);
+    
+    def _joinstrings(self, items):
+        return ' '.join(map(lambda s: self._unicodeencode(s), items));
 
 class AppPrinter(TermCaps):
     """
@@ -200,20 +211,6 @@ class AppPrinter(TermCaps):
             return;
         
         self._writeall("[-] ", self.c.magenta, self._joinstrings(text), self.c.sgr0, "\n");
-    
-    def _joinstrings(self, items):
-        result = list();
-        
-        for i in items:
-            if not isinstance(i, basestring):
-                continue;
-            
-            if isinstance(i, unicode):
-                result.append(i.encode("utf-8"));
-            else:
-                result.append(i);
-        
-        return ' '.join(result);
     
     def focus(self, meta):
         """

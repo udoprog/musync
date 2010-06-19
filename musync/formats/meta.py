@@ -15,7 +15,7 @@ class MetaFile:
         
         if idx > 0:
             self.ext = self.filename[idx+1:].lower();
-        
+
         if self.__translate__:
             for key in self.__translate__.keys():
                 ukey = key.upper();

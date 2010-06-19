@@ -8,6 +8,7 @@ class ID3MetaFile(meta.MetaFile):
         'TDOR': "year",
         'TDRC': "year",
         'TXXX': "year",
+        'TXXX:date': "year",
         'TRCK': "track",
         'TPE1': "artist",
         'TIT2': "title",
@@ -15,7 +16,10 @@ class ID3MetaFile(meta.MetaFile):
     
     def __init__(self, f, tags):
         meta.MetaFile.__init__(self, f, tags);
-
+        
+        if isinstance(self.year, basestring):
+            self.year = mutagen.id3.ID3TimeStamp(self.year);
+        
         if isinstance(self.year, mutagen.id3.ID3TimeStamp):
             self.year = self.year.year;
         
