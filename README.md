@@ -23,3 +23,29 @@ The event chain for the action 'add' could look like the following:
 Each of the methods, 'add'. 'checkhash' and 'targetpath' are defined using configuration, and most of them use one or more methods from the musync.custom namespace.
 
 To see the source code of these methods (if you want inspiration for your own), see musync/custom.py for inspiration.
+
+=== Installation ===
+
+Musync requires:
+
+    * At least Python 2.6
+    * Python mutagen >= 1.16 (http://pypi.python.org/pypi/mutagen/)
+
+Execute the normal python install command (as root):
+
+  sudo python setup.py
+
+Copy the following files to **/etc**
+
+  sudo cp share/musync.rules share/musync.conf /etc/
+
+Modify the following line to fit your needs
+Profit
+
+Try out musync on one of your mp3's
+
+  musync inspect test.mp3
+
+To find out more, type:
+
+  musync help
