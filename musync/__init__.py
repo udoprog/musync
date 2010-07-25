@@ -25,14 +25,14 @@ printer - handles everything that needs to be printed.
 """
 
 import musync.printer; # app.printer module
-import musync.dbman as db;
-import musync.opts; #options
-import musync.op;
-import musync.hints;
-import musync.formats;
-import musync.locker;
-import musync.sign;
-import musync.errors;
+import musync.db as db;
+import musync.opts
+import musync.op
+import musync.hints
+import musync.formats
+import musync.locker
+import musync.sign
+import musync.errors
 
 import signal;
 import sys;
@@ -172,6 +172,7 @@ def op_fix(app, source):
             app.lambdaenv.rm(source.path);
 	  
     target = None;
+    
     if source.isfile():
         if not source.meta:
             app.printer.warning("could not open metadata:", source.path);
@@ -295,6 +296,20 @@ def op_inspect(app, source):
     app.printer.blanknotice("year:      ", repr(source.meta.year))
     app.printer.blanknotice("targetpath:", repr(app.lambdaenv.targetpath(source)), "from", app.settings.targetpath);
 
+def op_check(app, source):
+    if source.isdir():
+        if source.isempty():
+            app.printer.notice("empty directory: " + source.relativepath());
+    elif source.isfile():
+        if not source.meta:
+            app.printer.warning("could not open metadata:", source.path);
+            return;
+
+        target = db.build_target(app, source);
+
+        if source.path != target.path:
+            app.printer.notice("source != target: " + source.relativepath());
+
 def main(app):
     if len(app.args) < 1:
         raise musync.errors.FatalException("To few arguments");
@@ -353,8 +368,12 @@ def main(app):
     elif app.args[0] in ("inspect"):
         app.printer.boldnotice("# Inspecting files...");
         musync.op.operate(app, op_inspect);
+    elif app.args[0] in ("check"):
+        app.printer.boldnotice("# Checking path...");
+        app.lambdaenv.recursive = True;
+        musync.op.operate(app, op_check, inroot=True);
     else:
-        raise musync.errors.FatalException("no such operation: " + app.args[0]);
+        raise Exception("no such operation: " + app.args[0]);
     
     if app.lambdaenv.verbose:
         if app.lambdaenv.pretend:
@@ -392,16 +411,12 @@ def entrypoint():
     
     try:
         main(app);
-    except musync.errors.FatalException, e: # break execution exception.
-        app.printer.error((str(e)));
+    except Exception as e:
+        app.printer.error("Fatal Exception:", str(e));
         if app.lambdaenv.debug:
             print traceback.format_exc();
-    except Exception, e: # if this happens, something went really bad.
-        app.printer.error("Fatal Exception:", str(e));
-        print traceback.format_exc();
-        app.printer.error("Something went very wrong, please report this error at:", musync.opts.REPORT_ADDRESS);
         sys.exit(1);
-    except SystemExit, e: # interrupts and such
+    except SystemExit as e: # interrupts and such
         sys.exit(e);
     
     if app.lambdaenv.verbose:

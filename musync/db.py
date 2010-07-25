@@ -44,7 +44,7 @@ import os;
 
 def build_target(app, source, **kw):
     """
-    builds a target for many of the functions in musync.dbman
+    builds a target for many of the functions in musync.db
     this is just a complex concatenation of directories and 
     filenames.
 
@@ -57,6 +57,9 @@ def build_target(app, source, **kw):
                  notice that this should have been cleaned with
                  musync.meta.cleanmeta();
     """
+
+    if source.meta is None:
+        raise Exception("No metadata associated with file")
     
     return musync.commons.Path(app, os.path.join(app.lambdaenv.root, app.lambdaenv.targetpath(source)), **kw);
 

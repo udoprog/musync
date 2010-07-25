@@ -22,19 +22,20 @@
 #    along with Musync.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from musync.errors import FatalException, WarningException;
-import musync.opts;
-import musync.commons;
-import sys;
+import sys
+import os
 
-import traceback;
-import musync.sign;
+import traceback
+
+import musync.opts
+import musync.commons
+import musync.sign
+
+from musync.errors import FatalException, WarningException
 
 # keep track of how many directories and files we are handling.
 handled_dirs = 0;
 handled_files = 0;
-
-import cStringIO;
 
 def operate(app, call, inroot=False):
     """
@@ -99,7 +100,7 @@ def readargs(app, args, inroot):
         while len(args) > 0:
             for p in readpaths(app, args[0], inroot):
                 yield p;
-
+            
             args = args[1:];
 
     return;
@@ -109,11 +110,12 @@ def readpaths(app, path, inroot):
     
     """
     global handled_dirs, handled_files;
+    
     if inroot:
-        path = app.lambdaenv.root + "/" + path;
-
+        path = os.path.join(app.lambdaenv.root, path);
+    
     p = musync.commons.Path(app, path);
-
+    
     if p.isfile():
         handled_files += 1;
     elif p.isdir():
@@ -124,6 +126,7 @@ def readpaths(app, path, inroot):
         
         if p.isroot():
             return;
+        
         handled_dirs += 1;
-
+    
     yield p;
