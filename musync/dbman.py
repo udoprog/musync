@@ -93,7 +93,7 @@ def add(app, p, t):
         
         if attempts > 0:
             if not p.exists():
-                raise musync.errors.FatalException("cannot perform add operation, source file does no longer exist!");
+                raise musync.errors.FatalException("cannot perform add operation, source file no longer exists (this is why you should not use an destructive operation like move for adding files)!");
         
         if app.lambdaenv.checkhash:
             parity = hash_get(app, p.path);
@@ -123,67 +123,3 @@ def remove (app, p, t):
     
     app.lambdaenv.rm(t);
     return True;
-
-def fix_file(app, p, t):
-    # this mean we are in the correct place...
-    if t.path == p.path:
-        app.printer.notice("sane - %s"%(t.relativepath()));
-        return; # this is sane.
-
-    if not t.isfile() and not t.islink():
-        app.printer.action("adding insane file - %s"%(p.relativepath()));
-        app.printer.action("                as - %s"%(t.relativepath()));
-        add(app, p, t);
-    
-    # since add might possibly move the file, check for existance
-    if p.isfile():
-        app.printer.action("removing insane file - %s"%(p.relativepath()));
-        app.lambdaenv.rm(p);
-
-def fix_dir(app, p):
-    if not p.isempty():
-        app.printer.notice("sane - %s"%(p.relativepath()));
-        return;
-    
-    app.printer.action("removing empty dir - %s"%(p.relativepath()));
-    p.rmdir();
-
-import copy
-
-#transcoding
-def transcode(app, source, target):
-    def handle(app, source_ext, target_ext, method, source, target):
-        # this is our new target.
-        target = build_target(app, source, ext=target_ext);
-
-        if (target.exists() or target.islink()) and not app.lambdaenv.force:
-            app.printer.warning("file already exists:", target.relativepath());
-            return None;
-        
-        # this is the temporary file for the transcode.
-        fp, tmp_file = tempfile.mkstemp();
-        os.close(fp);
-        
-        if app.lambdaenv.pretend:
-            app.printer.action("would have transcoded", source_ext, "to", target_ext);
-        else:
-            app.printer.action("transcoding", source_ext, "to", target_ext);
-            if not method(source.path, tmp_file):
-                app.printer.error("transcoding method failed!");
-                return None;
-        
-        # temp-file is the new source.
-        return (musync.commons.Path(app, tmp_file), target);
-    
-    r = app.lambdaenv.transcode(source);
-    
-    if r is None:
-        return (source, target);
-    
-    if not isinstance(r, tuple):
-        app.printer.warning("transcoding:",
-                "returned unexpected non-tuple, should have been; (ext, func), was:", type(r));
-        return None;
-    
-    target_ext, method = r;
-    return handle(app, source.ext, target_ext, method, source, target);

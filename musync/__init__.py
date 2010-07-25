@@ -65,15 +65,6 @@ def op_add(app, source):
     app.printer.focus(source.meta);
     
     target = db.build_target(app, source);
-    # FIXME: need transcoding
-    #if we are trying to transcode
-    if app.lambdaenv.transcode is not None:
-        r = db.transcode(app, source, target);
-        
-        if r is None:
-            return;
-        
-        source, target = r;
     
     if app.locker.islocked(target):
         app.printer.warning("locked:", source.path);
@@ -192,19 +183,40 @@ def op_fix(app, source):
         target = db.build_target(app, source);
     else:
         target = source;
-
-    if app.lambdaenv.pretend:
-        app.printer.notice("would check:", source.path);
-        if target.isfile():
-            app.printer.blanknotice("         as:", target.relativepath());
-    else:
-        if source.isfile():
-            db.fix_file(app, source, target);
-        elif source.isdir():
-            db.fix_dir(app, source);
     
-    if app.lambdaenv.lock:
-        op_lock(app, target);
+    def fix_file(app, s, t):
+        if t.path == s.path:
+            app.printer.notice("sane - " + t.relativepath());
+            return;
+        
+        if not t.isfile() and not t.islink():
+            if app.lambdaenv.pretend:
+                app.printer.action("would add insane file - " + s.relativepath());
+                app.printer.action("                   as - " + t.relativepath());
+            else:
+                app.printer.action("adding insane file - " + s.relativepath());
+                app.printer.action("                as - " + t.relativepath());
+                db.add(app, s, t);
+                
+                if s.isfile():
+                    app.printer.action("removing insane file - " + s.relativepath());
+                    app.lambdaenv.rm(s);
+    
+    def fix_dir(app, s):
+        if s.isempty():
+            if app.lambdaenv.pretend: 
+                app.printer.action("would remove empty dir - " + s.relativepath());
+            else:
+                app.printer.action("removing empty dir - " + s.relativepath());
+                s.rmdir();
+            
+            if app.lambdaenv.lock:
+                op_lock(app, target);
+        else:
+            app.printer.notice("sane - " + s.relativepath());
+    
+    if source.isfile():   fix_file(app, source, target);
+    elif source.isdir():  fix_dir(app, source);
 
 def op_lock(app, source):
     """
@@ -217,7 +229,7 @@ def op_lock(app, source):
         return;
 
     if app.lambdaenv.pretend:
-        app.printer.notice("would try to lock:", source.path);
+        app.printer.action("would try to lock:", source.path);
         return;
     
     if source.isdir():
@@ -242,7 +254,7 @@ def op_unlock(app, source):
         return;
 
     if app.lambdaenv.pretend:
-        app.printer.notice("would try to unlock:", source.path);
+        app.printer.action("would try to unlock:", source.path);
         return;
     
     if source.isfile():
