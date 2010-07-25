@@ -35,7 +35,7 @@ Musync requirements
 * At least Python 2.6
 * Python mutagen >= 1.16 (http://pypi.python.org/pypi/mutagen/)
 
-Commands
+Installation
 --------
 
 Execute the normal python install command (as root):
@@ -46,13 +46,25 @@ Copy the following files to **/etc**
 
     sudo cp share/musync.rules share/musync.conf /etc/
 
-Modify the following line to fit your needs
-Profit
+Taking it for a spin
+--------------------
 
-Try out musync on one of your mp3's
+Modify the following line to fit your needs:
 
-  musync inspect test.mp3
+    root:"/path/to/sorted/music"
+
+Now try it out:
+
+    musync inspect music.mp3
+
+If what you see is satisfactory, do:
+
+    musync add music.mp3
+
+Which will add the music to your library.
+
+Profit!
 
 To find out more, type:
 
-  musync help
+    musync help
