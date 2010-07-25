@@ -21,17 +21,17 @@ import string;
 import os.path;
 
 class LockFileDB:
-    def __init__(self, app, lock_file):
+    def __init__(self, app, lock_path):
         self.app = app;
         self.changed = False;
         self.removed = False;
-        self.lock_file = lock_file;
+        self.lock_path = lock_path;
         
-        if not os.path.isfile(self.lock_file):
-            f = open(self.lock_file, "w");
+        if not os.path.isfile(self.lock_path):
+            f = open(self.lock_path, "w");
             f.close();
         
-        f = open(self.lock_file, "r");
+        f = open(self.lock_path, "r");
         self.DB = [x.strip(string.whitespace) for x in f.readlines()];
         f.close();
         
