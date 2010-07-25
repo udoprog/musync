@@ -101,7 +101,7 @@ def add(app, p, t):
         if app.lambdaenv.checkhash:
             parity = hash_get(app, p.path);
         
-        app.lambdaenv.add(p.path, t.path);
+        app.lambdaenv.add(p, t);
         
         # if settings prompt, check target file hash.
         if app.lambdaenv.checkhash:
