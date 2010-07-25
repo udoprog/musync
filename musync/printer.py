@@ -30,8 +30,6 @@
 
 import sys, os, codecs;
 
-from musync.errors import FatalException;
-
 class TermCapHolder:
     pass;
 

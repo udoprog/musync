@@ -10,16 +10,33 @@ import types
 import collections
 import tempfile
 import os
+import sys
+import logging
 
+class CustomException(Exception):
+    pass;
+
+def guardexecution(func):
+  def wrapper(*args, **kw):
+    try:
+      return func(*args, **kw);
+    except CustomException:
+      # just pass CustomException since they are native to the wrapped commands
+      raise
+    except Exception:
+      raise CustomException("Inline command threw exception"), None, sys.exc_info()[2]
+  return wrapper;
+
+@guardexecution
 def system(*args, **kw):
     """
-    spawn a command and return value as boolean.
+    spawn a command and return status as boolean.
     """
     return sp.Popen(args, **kw).wait() == 0;
 
 def execute(*args, **kw):
     """
-    spawn a command and return value as boolean.
+    spawn a command and return output or raise exception on status != 0 or empty output
     """
     kw["stdout"] = sp.PIPE;
     
@@ -31,11 +48,15 @@ def execute(*args, **kw):
     proc.stdout.close();
     
     # only return data on returncode == 0
-    if proc.wait() == 0:
-        return data;
-    
-    return "";
+    if proc.wait() != 0:
+        raise CustomException("Command returned non-zero status code: " + repr(args));
 
+    if data is None or data == "":
+        raise CustomException("Command returned notthing on stdout: " + repr(args));
+
+    return data;
+    
+@guardexecution
 def filter(data, *args, **kw):
     """
     spawn a command and return value as boolean.
@@ -56,11 +77,20 @@ def filter(data, *args, **kw):
     proc.stdout.close();
     
     # only return data on returncode == 0
-    if proc.wait() == 0:
-        return data;
-    
-    return "";
+    if proc.wait() != 0:
+        raise CustomException("Command returned non-zero status code");
 
+    if data is None or data == "":
+        raise CustomException("Command returned notthing on stdout");
+    if proc.wait() != 0:
+        raise CustomException("Command returned non-zero status code: " + repr(args));
+
+    if data is None or data == "":
+        raise CustomException("Command returned notthing on stdout: " + repr(args));
+
+    return data;
+
+@guardexecution
 def md5sum(target):
     """
 
@@ -84,6 +114,7 @@ def md5sum(target):
         
         m.update(s);
 
+@guardexecution
 def ue(text):
     """
     Do not allow _any_ unicode characters to pass by here.
@@ -108,9 +139,13 @@ def ue(text):
 
 cached_books = dict();
 
+@guardexecution
 def lexer(rb, string):
     global cached_books;
     
+    if not os.path.isfile(rb):
+        raise CustomException("Rulebook does not exist: " + rb);
+
     if rb in cached_books:
         return cached_books[rb].match(string);
     
@@ -120,15 +155,17 @@ def lexer(rb, string):
     if len(lexer.errors) > 0:
         for error in lexer.errors:
             (line, col), message =  error;
-            print(rb + ":" + str(line) + ":" + str(col), message);
+            logging.warning(rb + ":" + str(line) + ":" + str(col) + " " + message);
     
     cached_books[rb] = rulelexer.RuleBook(lexer);
     return cached_books[rb].match(string);
 
+@guardexecution
 def inspect(o):
     print "inspection:", type(o), repr(o);
     return o;
 
+@guardexecution
 def case(mv, *args, **kw):
     """
     Match a value against a set of cases.
@@ -158,6 +195,7 @@ def case(mv, *args, **kw):
     # match a kw
     return kw.get(str(mv), None);
 
+@guardexecution
 def each(*args):
     """
     Run each argument if a FunctionType, in successive order.
@@ -172,6 +210,7 @@ def each(*args):
     
     return True;
 
+@guardexecution
 def in_tmp(func, *args, **kw):
     """
     Create a temporary file, use it as the first argument to a function, transparently also pass the other arguments.

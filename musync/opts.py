@@ -57,6 +57,8 @@ class LambdaEnviron(dict):
         self.__setitem__(key, val);
     
     def __getattr__(self, key):
+        if not self.has_key(key):
+            raise Exception("No such key in lambdaenviron: " + key);
         return self.__getitem__(key);
 
     def __hasattr__(self, key):
