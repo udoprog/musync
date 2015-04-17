@@ -72,7 +72,7 @@ def op_add(app, source):
 
     if app.lambdaenv.pretend:
         app.printer.notice("would add:", source.path);
-        app.printer.blanknotice("       as:", target.relativepath());
+        app.printer.action("       as:", target.relativepath());
     else:
         app.printer.action("adding file:", target.relativepath());
         db.add(app, source, target);

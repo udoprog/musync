@@ -66,6 +66,8 @@ def hash_get(app, path):
 def add(app, p, t):
     "adds a file to the database"
 
+    from md5 import md5
+
     if not t.parent().isdir():
         # recursively makes directories.
         try:
@@ -105,7 +107,7 @@ def add(app, p, t):
             check = hash_get(app, t.path);
             
             if parity == check:
-                app.printer.notice(  "      checkhash successful :-) {0} equals {1}".format(repr(parity), repr(check)) )
+                app.printer.notice(  "      checkhash successful :-) {0} equals {1}".format(md5(repr(parity)).hexdigest(), md5(repr(check)).hexdigest()) )
             else:
                 app.printer.warning( "      checkhash failed :-/ {0} is not {1}".format(repr(parity), repr(check)) )
                 attempts += 1;
